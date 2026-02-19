@@ -36,7 +36,7 @@ st.set_page_config(
 # ---------------------------------------------------------
 # PATHS & CONSTANTS
 # ---------------------------------------------------------
-DATA_PATH = Path("APL_Logistics.csv")
+DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
@@ -361,3 +361,4 @@ def render_footer():
     """, unsafe_allow_html=True)
 
 render_footer()
+
