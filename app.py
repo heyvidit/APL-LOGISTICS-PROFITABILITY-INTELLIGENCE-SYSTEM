@@ -1,7 +1,6 @@
 # =========================================================
 # APL LOGISTICS – PREDICTIVE LATE DELIVERY RISK SYSTEM
 # Internship: Unified Mentor Pvt. Ltd.
-# Project: Predictive Supply Chain Risk Intelligence
 # Author: Vidit Kapoor
 # =========================================================
 
@@ -26,30 +25,29 @@ from sklearn.metrics import (
 import plotly.express as px
 
 # ---------------------------------------------------------
-# PAGE CONFIG (MUST BE FIRST STREAMLIT COMMAND)
+# PAGE CONFIG (MUST BE FIRST)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="APL Logistics | Predictive Risk Intelligence",
     layout="wide",
-    page_icon="favicon.jfif"   # ✅ favicon added
+    page_icon="favicon.jfif"
 )
 
 # ---------------------------------------------------------
-# GLOBAL CONSTANTS
+# PATHS & CONSTANTS
 # ---------------------------------------------------------
 DATA_PATH = Path("APL_Logistics.csv")
 APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
-# Chart typography (balanced & professional)
 PLOTLY_FONT = dict(family="Arial", size=14, color="#EAEAEA")
 TITLE_SIZE = 22
 AXIS_LABEL_SIZE = 16
 TICK_SIZE = 14
 
 # ---------------------------------------------------------
-# GLOBAL SIDEBAR STYLING
+# SIDEBAR STYLING
 # ---------------------------------------------------------
 st.markdown("""
 <style>
@@ -68,9 +66,7 @@ section[data-testid="stSidebar"] label {
 # ---------------------------------------------------------
 def render_header():
     if not APL_LOGO_PATH.exists():
-        st.warning("APL logo not found")
         return
-
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="background:#0E1117;padding:45px 20px 35px;text-align:center;">
@@ -89,12 +85,19 @@ render_header()
 st.markdown("")
 
 # ---------------------------------------------------------
-# LOAD DATA (CACHED & FAST)
+# DATA LOADING (DEPLOYMENT SAFE)
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_PATH, encoding="latin1")
-    return df.sample(min(len(df), 50000), random_state=42)
+    if not DATA_PATH.exists():
+        st.error(
+            "Dataset not found.\n\n"
+            "This application uses a confidential logistics dataset "
+            "and cannot be publicly shared.\n\n"
+            "To run locally, place `APL_Logistics.csv` in the project root."
+        )
+        st.stop()
+    return pd.read_csv(DATA_PATH, encoding="latin1")
 
 df = load_data()
 
@@ -124,8 +127,7 @@ df["Shipping_Pressure_Index"] = (
 ).fillna(0)
 
 df["Is_Express_Shipping"] = (
-    df["Shipping Mode"]
-    .astype(str)
+    df["Shipping Mode"].astype(str)
     .str.contains("express", case=False)
     .astype(int)
 )
@@ -175,7 +177,7 @@ if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
 
 # ---------------------------------------------------------
-# MODEL DATA
+# MODEL FEATURES (PRE-DISPATCH ONLY)
 # ---------------------------------------------------------
 FEATURES = [
     "Days for shipment (scheduled)",
@@ -206,13 +208,8 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42
 )
 
-@st.cache_data
-def encode(train, test):
-    train_enc = pd.get_dummies(train, drop_first=True)
-    test_enc = test.reindex(columns=train_enc.columns, fill_value=0)
-    return train_enc, test_enc
-
-X_train_enc, X_test_enc = encode(X_train, X_test)
+X_train = pd.get_dummies(X_train, drop_first=True)
+X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
 
 # ---------------------------------------------------------
 # MODEL TRAINING
@@ -229,11 +226,11 @@ def train_model(X, y):
     model.fit(X, y)
     return model
 
-model = train_model(X_train_enc, y_train)
-y_proba = model.predict_proba(X_test_enc)[:, 1]
+model = train_model(X_train, y_train)
+y_proba = model.predict_proba(X_test)[:, 1]
 
 # ---------------------------------------------------------
-# METRICS
+# METRICS & THRESHOLD
 # ---------------------------------------------------------
 threshold = st.sidebar.slider(
     "🚨 High-Risk Probability Threshold",
@@ -246,7 +243,7 @@ rec = recall_score(y_test, y_proba >= threshold)
 f1 = f1_score(y_test, y_proba >= threshold)
 
 # ---------------------------------------------------------
-# KPI SECTION
+# KPI OVERVIEW
 # ---------------------------------------------------------
 st.subheader("📊 Executive Risk Overview")
 c1, c2, c3, c4, c5 = st.columns(5)
@@ -270,74 +267,40 @@ cm_df = pd.DataFrame(
     columns=["Predicted On-Time", "Predicted Late"]
 )
 
-fig_cm = px.imshow(
-    cm_df,
-    text_auto=True,
-    color_continuous_scale="Blues"
+st.plotly_chart(
+    px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues"),
+    use_container_width=True
 )
-
-fig_cm.update_layout(
-    title="Confusion Matrix at Selected Risk Threshold",
-    font=PLOTLY_FONT,
-    title_font_size=TITLE_SIZE,
-    xaxis_title_font_size=AXIS_LABEL_SIZE,
-    yaxis_title_font_size=AXIS_LABEL_SIZE
-)
-fig_cm.update_xaxes(tickfont_size=TICK_SIZE)
-fig_cm.update_yaxes(tickfont_size=TICK_SIZE)
-
-st.plotly_chart(fig_cm, use_container_width=True)
-
-# ---------------------------------------------------------
-# CHART STYLING HELPER
-# ---------------------------------------------------------
-def style(fig, title):
-    fig.update_layout(
-        title=title,
-        font=PLOTLY_FONT,
-        title_font_size=TITLE_SIZE,
-        xaxis_title_font_size=AXIS_LABEL_SIZE,
-        yaxis_title_font_size=AXIS_LABEL_SIZE
-    )
-    fig.update_xaxes(tickfont_size=TICK_SIZE)
-    fig.update_yaxes(tickfont_size=TICK_SIZE)
-    return fig
 
 # ---------------------------------------------------------
 # VISUALS
 # ---------------------------------------------------------
 st.plotly_chart(
-    style(
-        px.histogram(
-            pd.DataFrame({"Delay Probability": y_proba}),
-            x="Delay Probability",
-            nbins=30
-        ),
-        "Late Delivery Risk Distribution"
+    px.histogram(
+        pd.DataFrame({"Delay Probability": y_proba}),
+        x="Delay Probability",
+        nbins=30,
+        title="Late Delivery Risk Distribution"
     ),
     use_container_width=True
 )
 
 st.plotly_chart(
-    style(
-        px.bar(
-            df.groupby("Order Region")[TARGET].mean().reset_index(),
-            x="Order Region",
-            y=TARGET
-        ),
-        "Average Delay Risk by Region"
+    px.bar(
+        df.groupby("Order Region")[TARGET].mean().reset_index(),
+        x="Order Region",
+        y=TARGET,
+        title="Average Delay Risk by Region"
     ),
     use_container_width=True
 )
 
 st.plotly_chart(
-    style(
-        px.bar(
-            df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
-            x="Shipping Mode",
-            y=TARGET
-        ),
-        "Average Delay Risk by Shipping Mode"
+    px.bar(
+        df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+        x="Shipping Mode",
+        y=TARGET,
+        title="Average Delay Risk by Shipping Mode"
     ),
     use_container_width=True
 )
@@ -362,22 +325,20 @@ st.dataframe(
 )
 
 # ---------------------------------------------------------
-# EXPLAINABILITY
+# EXPLAINABILITY (COEFFICIENT IMPACT)
 # ---------------------------------------------------------
 coef_df = pd.DataFrame({
-    "Feature": X_train_enc.columns,
+    "Feature": X_train.columns,
     "Impact": np.abs(model.named_steps["lr"].coef_[0])
 }).sort_values("Impact", ascending=False).head(15)
 
 st.plotly_chart(
-    style(
-        px.bar(
-            coef_df,
-            x="Impact",
-            y="Feature",
-            orientation="h"
-        ),
-        "Key Drivers of Late Delivery Risk"
+    px.bar(
+        coef_df,
+        x="Impact",
+        y="Feature",
+        orientation="h",
+        title="Key Drivers of Late Delivery Risk"
     ),
     use_container_width=True
 )
@@ -388,25 +349,13 @@ st.plotly_chart(
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
         return
-
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;
                 padding:25px 40px;background:#0E1117;color:white;
                 font-size:16px;font-family:Arial;">
-        <div style="display:flex;gap:12px;align-items:center;">
-            <img src="data:image/png;base64,{encoded}" style="height:50px;">
-            <span>Mentored by 
-            <a href="https://www.linkedin.com/in/saiprasad-kagne/"
-               target="_blank" style="color:#0A66C2;">
-               Sai Prasad Kagne</a></span>
-        </div>
-        <span>
-            Created by 
-            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
-               target="_blank" style="color:#0A66C2;">
-               Vidit Kapoor</a>
-        </span>
+        <span>Mentored by Sai Prasad Kagne</span>
+        <span>Created by Vidit Kapoor</span>
         <span>Version 1.0 | Feb 2026</span>
     </div>
     """, unsafe_allow_html=True)
