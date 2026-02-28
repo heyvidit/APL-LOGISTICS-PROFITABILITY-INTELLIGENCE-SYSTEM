@@ -48,71 +48,31 @@ AXIS_LABEL_SIZE = 16
 TICK_SIZE = 14
 
 # ---------------------------------------------------------
-# SIDEBAR DESIGN (UI ONLY – NO LOGIC CHANGE)
+# SIDEBAR DESIGN (UI ONLY – LOGIC UNCHANGED)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
-
-/* Sidebar container */
 section[data-testid="stSidebar"] {
     background-color: #0E1117;
     padding: 18px 12px;
 }
-
-/* Sidebar headers */
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-    color: #EAEAEA;
-    font-weight: 600;
-}
-
-/* Section titles */
 section[data-testid="stSidebar"] h3 {
     font-size: 15px;
     margin: 18px 0 10px;
     padding-bottom: 6px;
     border-bottom: 1px solid #232A33;
 }
-
-/* Labels */
 section[data-testid="stSidebar"] label {
     font-size: 13px;
     color: #B0B3B8;
 }
-
-/* Inputs */
-section[data-testid="stSidebar"] .stMultiSelect,
-section[data-testid="stSidebar"] .stSelectbox {
-    background-color: #161B22;
-    border-radius: 8px;
-    padding: 6px;
-    margin-bottom: 14px;
-}
-
-/* Slider spacing */
-section[data-testid="stSidebar"] .stSlider {
-    padding: 8px 0 16px;
-}
-
-/* Card wrapper */
 .sidebar-card {
     background-color: #161B22;
-    padding: 12px 12px 6px;
+    padding: 12px;
     border-radius: 10px;
     margin-bottom: 16px;
     border: 1px solid #232A33;
 }
-
-/* Scrollbar */
-section[data-testid="stSidebar"] ::-webkit-scrollbar {
-    width: 6px;
-}
-section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {
-    background: #2A2F3A;
-    border-radius: 10px;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -177,8 +137,7 @@ df["Shipping_Pressure_Index"] = (
 ).fillna(0)
 
 df["Is_Express_Shipping"] = (
-    df["Shipping Mode"]
-    .astype(str)
+    df["Shipping Mode"].astype(str)
     .str.contains("express", case=False)
     .astype(int)
 )
@@ -196,7 +155,7 @@ df["Region_Delay_Risk"] = (
 )
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS (DESIGN ENHANCED – LOGIC UNCHANGED)
+# SIDEBAR FILTERS (UI WRAPPED)
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -259,10 +218,7 @@ y = df[TARGET]
 # TRAIN / TEST SPLIT
 # ---------------------------------------------------------
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y,
-    stratify=y,
-    test_size=0.25,
-    random_state=42
+    X, y, stratify=y, test_size=0.25, random_state=42
 )
 
 @st.cache_data
@@ -280,10 +236,7 @@ X_train_enc, X_test_enc = encode(X_train, X_test)
 def train_model(X, y):
     model = Pipeline([
         ("scaler", StandardScaler()),
-        ("lr", LogisticRegression(
-            max_iter=1000,
-            class_weight="balanced"
-        ))
+        ("lr", LogisticRegression(max_iter=1000, class_weight="balanced"))
     ])
     model.fit(X, y)
     return model
@@ -295,8 +248,7 @@ y_proba = model.predict_proba(X_test_enc)[:, 1]
 # METRICS
 # ---------------------------------------------------------
 threshold = st.sidebar.slider(
-    "🚨 High-Risk Probability Threshold",
-    0.30, 0.90, 0.70, 0.05
+    "🚨 High-Risk Probability Threshold", 0.30, 0.90, 0.70, 0.05
 )
 
 roc = roc_auc_score(y_test, y_proba)
@@ -329,24 +281,86 @@ cm_df = pd.DataFrame(
     columns=["Predicted On-Time", "Predicted Late"]
 )
 
-fig_cm = px.imshow(
-    cm_df,
-    text_auto=True,
-    color_continuous_scale="Blues"
-)
-
-fig_cm.update_layout(
-    title="Confusion Matrix at Selected Risk Threshold",
-    font=PLOTLY_FONT,
-    title_font_size=TITLE_SIZE,
-    xaxis_title_font_size=AXIS_LABEL_SIZE,
-    yaxis_title_font_size=AXIS_LABEL_SIZE
-)
-
+fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
 st.plotly_chart(fig_cm, use_container_width=True)
 
 # ---------------------------------------------------------
-# FOOTER (ORIGINAL – UNCHANGED)
+# CHART STYLING HELPER
+# ---------------------------------------------------------
+def style(fig, title):
+    fig.update_layout(
+        title=title,
+        font=PLOTLY_FONT,
+        title_font_size=TITLE_SIZE,
+        xaxis_title_font_size=AXIS_LABEL_SIZE,
+        yaxis_title_font_size=AXIS_LABEL_SIZE
+    )
+    fig.update_xaxes(tickfont_size=TICK_SIZE)
+    fig.update_yaxes(tickfont_size=TICK_SIZE)
+    return fig
+
+# ---------------------------------------------------------
+# VISUALS (ALL RESTORED)
+# ---------------------------------------------------------
+st.plotly_chart(
+    style(px.histogram(
+        pd.DataFrame({"Delay Probability": y_proba}),
+        x="Delay Probability", nbins=30),
+        "Late Delivery Risk Distribution"),
+    use_container_width=True
+)
+
+st.plotly_chart(
+    style(px.bar(
+        df.groupby("Order Region")[TARGET].mean().reset_index(),
+        x="Order Region", y=TARGET),
+        "Average Delay Risk by Region"),
+    use_container_width=True
+)
+
+st.plotly_chart(
+    style(px.bar(
+        df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+        x="Shipping Mode", y=TARGET),
+        "Average Delay Risk by Shipping Mode"),
+    use_container_width=True
+)
+
+# ---------------------------------------------------------
+# HIGH-RISK ACTION QUEUE
+# ---------------------------------------------------------
+results = X_test.copy()
+results["Delay_Probability"] = y_proba
+results["Risk_Category"] = pd.cut(
+    results["Delay_Probability"],
+    [0, 0.4, threshold, 1],
+    labels=["Low", "Medium", "High"]
+)
+
+st.subheader("🚨 High-Risk Orders – Operations Action Queue")
+st.dataframe(
+    results[results["Risk_Category"] == "High"]
+    .sort_values("Delay_Probability", ascending=False)
+    .head(50),
+    use_container_width=True
+)
+
+# ---------------------------------------------------------
+# EXPLAINABILITY
+# ---------------------------------------------------------
+coef_df = pd.DataFrame({
+    "Feature": X_train_enc.columns,
+    "Impact": np.abs(model.named_steps["lr"].coef_[0])
+}).sort_values("Impact", ascending=False).head(15)
+
+st.plotly_chart(
+    style(px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+          "Key Drivers of Late Delivery Risk"),
+    use_container_width=True
+)
+
+# ---------------------------------------------------------
+# FOOTER (ORIGINAL – UNTOUCHED)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
