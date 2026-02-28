@@ -48,7 +48,7 @@ AXIS_LABEL_SIZE = 16
 TICK_SIZE = 14
 
 # ---------------------------------------------------------
-# SIDEBAR DESIGN (IMPROVED – UI ONLY)
+# SIDEBAR DESIGN (UI ONLY – NO LOGIC CHANGE)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
@@ -59,13 +59,12 @@ section[data-testid="stSidebar"] {
     padding: 18px 12px;
 }
 
-/* Headers */
+/* Sidebar headers */
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3 {
     color: #EAEAEA;
     font-weight: 600;
-    letter-spacing: 0.4px;
 }
 
 /* Section titles */
@@ -197,7 +196,7 @@ df["Region_Delay_Risk"] = (
 )
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS (DESIGN ENHANCED – LOGIC SAME)
+# SIDEBAR FILTERS (DESIGN ENHANCED – LOGIC UNCHANGED)
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -347,7 +346,7 @@ fig_cm.update_layout(
 st.plotly_chart(fig_cm, use_container_width=True)
 
 # ---------------------------------------------------------
-# FOOTER
+# FOOTER (ORIGINAL – UNCHANGED)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
@@ -356,9 +355,21 @@ def render_footer():
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;
-                padding:25px 40px;background:#0E1117;color:white;">
-        <span>Mentored by Sai Prasad Kagne</span>
-        <span>Created by Vidit Kapoor</span>
+                padding:25px 40px;background:#0E1117;color:white;
+                font-size:16px;font-family:Arial;">
+        <div style="display:flex;gap:12px;align-items:center;">
+            <img src="data:image/png;base64,{encoded}" style="height:50px;">
+            <span>Mentored by 
+            <a href="https://www.linkedin.com/in/saiprasad-kagne/"
+               target="_blank" style="color:#0A66C2;">
+               Sai Prasad Kagne</a></span>
+        </div>
+        <span>
+            Created by 
+            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
+               target="_blank" style="color:#0A66C2;">
+               Vidit Kapoor</a>
+        </span>
         <span>Version 1.0 | Feb 2026</span>
     </div>
     """, unsafe_allow_html=True)
