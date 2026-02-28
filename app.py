@@ -26,7 +26,7 @@ from sklearn.metrics import (
 import plotly.express as px
 
 # ---------------------------------------------------------
-# PAGE CONFIG (MUST BE FIRST STREAMLIT COMMAND)
+# PAGE CONFIG
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="APL Logistics | Predictive Risk Intelligence",
@@ -48,10 +48,12 @@ AXIS_LABEL_SIZE = 16
 TICK_SIZE = 14
 
 # ---------------------------------------------------------
-# SIDEBAR DESIGN (UI ONLY – LOGIC UNCHANGED)
+# GLOBAL UI STYLES (DESIGN ONLY)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
+
+/* Sidebar */
 section[data-testid="stSidebar"] {
     background-color: #0E1117;
     padding: 18px 12px;
@@ -73,6 +75,34 @@ section[data-testid="stSidebar"] label {
     margin-bottom: 16px;
     border: 1px solid #232A33;
 }
+
+/* KPI Cards */
+.kpi-card {
+    background: #161B22;
+    border: 1px solid #232A33;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+}
+.kpi-title {
+    color: #B0B3B8;
+    font-size: 14px;
+}
+.kpi-value {
+    color: #EAEAEA;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* Chart Cards */
+.chart-card {
+    background:#161B22;
+    padding:18px;
+    border-radius:14px;
+    border:1px solid #232A33;
+    margin-bottom:30px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -155,7 +185,7 @@ df["Region_Delay_Risk"] = (
 )
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS (UI WRAPPED)
+# SIDEBAR FILTERS
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -257,21 +287,29 @@ rec = recall_score(y_test, y_proba >= threshold)
 f1 = f1_score(y_test, y_proba >= threshold)
 
 # ---------------------------------------------------------
-# KPI SECTION
+# KPI SECTION (UPGRADED DESIGN)
 # ---------------------------------------------------------
 st.subheader("📊 Executive Risk Overview")
 c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Orders Analysed", f"{len(df):,}")
-c2.metric("ROC-AUC", round(roc, 3))
-c3.metric("Precision", round(prec, 3))
-c4.metric("Recall", round(rec, 3))
-c5.metric("F1 Score", round(f1, 3))
+
+def kpi(col, title, value):
+    col.markdown(f"""
+    <div class="kpi-card">
+        <div class="kpi-title">{title}</div>
+        <div class="kpi-value">{value}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+kpi(c1, "Orders Analysed", f"{len(df):,}")
+kpi(c2, "ROC-AUC", round(roc, 3))
+kpi(c3, "Precision", round(prec, 3))
+kpi(c4, "Recall", round(rec, 3))
+kpi(c5, "F1 Score", round(f1, 3))
 
 # ---------------------------------------------------------
 # CONFUSION MATRIX
 # ---------------------------------------------------------
 st.subheader("🧮 Model Error Analysis – Confusion Matrix")
-
 y_pred = (y_proba >= threshold).astype(int)
 cm = confusion_matrix(y_test, y_pred)
 
@@ -282,7 +320,9 @@ cm_df = pd.DataFrame(
 )
 
 fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(fig_cm, use_container_width=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # CHART STYLING HELPER
@@ -300,31 +340,49 @@ def style(fig, title):
     return fig
 
 # ---------------------------------------------------------
-# VISUALS (ALL RESTORED)
+# VISUALS
 # ---------------------------------------------------------
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
-    style(px.histogram(
-        pd.DataFrame({"Delay Probability": y_proba}),
-        x="Delay Probability", nbins=30),
-        "Late Delivery Risk Distribution"),
+    style(
+        px.histogram(
+            pd.DataFrame({"Delay Probability": y_proba}),
+            x="Delay Probability",
+            nbins=30
+        ),
+        "Late Delivery Risk Distribution"
+    ),
     use_container_width=True
 )
+st.markdown('</div>', unsafe_allow_html=True)
 
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
-    style(px.bar(
-        df.groupby("Order Region")[TARGET].mean().reset_index(),
-        x="Order Region", y=TARGET),
-        "Average Delay Risk by Region"),
+    style(
+        px.bar(
+            df.groupby("Order Region")[TARGET].mean().reset_index(),
+            x="Order Region",
+            y=TARGET
+        ),
+        "Average Delay Risk by Region"
+    ),
     use_container_width=True
 )
+st.markdown('</div>', unsafe_allow_html=True)
 
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
-    style(px.bar(
-        df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
-        x="Shipping Mode", y=TARGET),
-        "Average Delay Risk by Shipping Mode"),
+    style(
+        px.bar(
+            df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+            x="Shipping Mode",
+            y=TARGET
+        ),
+        "Average Delay Risk by Shipping Mode"
+    ),
     use_container_width=True
 )
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # HIGH-RISK ACTION QUEUE
@@ -353,14 +411,23 @@ coef_df = pd.DataFrame({
     "Impact": np.abs(model.named_steps["lr"].coef_[0])
 }).sort_values("Impact", ascending=False).head(15)
 
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
-    style(px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
-          "Key Drivers of Late Delivery Risk"),
+    style(
+        px.bar(
+            coef_df,
+            x="Impact",
+            y="Feature",
+            orientation="h"
+        ),
+        "Key Drivers of Late Delivery Risk"
+    ),
     use_container_width=True
 )
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (ORIGINAL – UNTOUCHED)
+# FOOTER (ORIGINAL – UNCHANGED)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
