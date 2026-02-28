@@ -35,7 +35,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# GLOBAL CONSTANTS
+# GLOBAL CONSTANTS (ORIGINAL COLORS RESTORED)
 # ---------------------------------------------------------
 DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
@@ -48,134 +48,77 @@ AXIS_LABEL_SIZE = 13
 TICK_SIZE = 11
 
 # ---------------------------------------------------------
-# GLOBAL UI / UX CSS (WITH MULTISELECT FIX)
+# GLOBAL UI STYLES (CLEAN + SAFE)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
 
-/* ========= DESIGN TOKENS ========= */
-:root {
-    --bg-main:#0E1117;
-    --bg-card:#161B22;
-    --border:#232A33;
-
-    --text-main:#E6E6E6;
-    --text-muted:#9CA3AF;
-
-    --primary:#2A7FFF;
-    --accent:#22D3EE;
+/* ========== REMOVE STREAMLIT SIDEBAR SEARCH (EMPTY BOX) ========== */
+section[data-testid="stSidebar"] input[type="text"] {
+    display: none !important;
 }
 
-/* ========= SIDEBAR ========= */
+/* ========== SIDEBAR ========== */
 section[data-testid="stSidebar"] {
-    background-color:var(--bg-main);
-    padding:18px 14px;
+    background-color: #0E1117;
+    padding: 18px 14px;
 }
 
 section[data-testid="stSidebar"] h3 {
-    font-size:15px;
-    font-weight:600;
-    margin:18px 0 10px;
-    padding-bottom:6px;
-    border-bottom:1px solid var(--border);
-    color:var(--text-main);
+    font-size: 15px;
+    margin: 18px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #232A33;
+    color: #EAEAEA;
 }
 
 section[data-testid="stSidebar"] label {
-    font-size:13px;
-    color:var(--text-muted);
+    font-size: 13px;
+    color: #B0B3B8;
 }
 
-/* Sidebar cards */
 .sidebar-card {
-    background:var(--bg-card);
-    padding:14px;
-    border-radius:12px;
-    margin-bottom:16px;
-    border:1px solid var(--border);
+    background-color: #161B22;
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    border: 1px solid #232A33;
 }
 
-/* ========= MULTISELECT FIX ========= */
-
-/* Selected value tags */
-div[data-baseweb="tag"] {
-    background-color:#1F3A5F !important;
-    color:#E6E6E6 !important;
-    border-radius:6px;
-    font-size:12px;
-}
-
-/* Tag text */
-div[data-baseweb="tag"] span {
-    color:#E6E6E6 !important;
-}
-
-/* Select input background */
-div[data-baseweb="select"] {
-    background-color:#141922;
-    border-radius:10px;
-}
-
-/* Placeholder text */
-div[data-baseweb="select"] span {
-    color:#9CA3AF;
-}
-
-/* Dropdown */
-ul[role="listbox"] {
-    background-color:#161B22;
-    color:#E6E6E6;
-}
-
-/* Hover option */
-li[role="option"]:hover {
-    background-color:#1F3A5F;
-}
-
-/* ========= KPI CARDS ========= */
+/* ========== KPI CARDS ========== */
 .kpi-card {
-    background:linear-gradient(180deg,#161B22,#141922);
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:22px 18px;
-    text-align:center;
-    position:relative;
-}
-
-.kpi-card::before {
-    content:"";
-    position:absolute;
-    top:0; left:0;
-    width:100%; height:3px;
-    background:linear-gradient(90deg,var(--primary),var(--accent));
-    border-radius:16px 16px 0 0;
+    background: #161B22;
+    border: 1px solid #232A33;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
 }
 
 .kpi-title {
-    color:var(--text-muted);
-    font-size:13px;
+    color: #B0B3B8;
+    font-size: 14px;
 }
 
 .kpi-value {
-    color:var(--text-main);
-    font-size:28px;
-    font-weight:700;
+    color: #EAEAEA;
+    font-size: 28px;
+    font-weight: 700;
 }
 
-/* ========= CHART CARDS ========= */
+/* ========== CHART CARDS ========== */
 .chart-card {
-    background:linear-gradient(180deg,#161B22,#141922);
-    padding:20px;
-    border-radius:16px;
-    border:1px solid var(--border);
+    background:#161B22;
+    padding:18px;
+    border-radius:14px;
+    border:1px solid #232A33;
     margin-bottom:30px;
 }
 
-/* ========= DATAFRAME ========= */
+/* ========== DATAFRAME ========== */
 div[data-testid="stDataFrame"] {
-    border-radius:14px;
-    overflow:hidden;
-    border:1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #232A33;
 }
 
 </style>
@@ -188,6 +131,7 @@ def render_header():
     if not APL_LOGO_PATH.exists():
         st.warning("APL logo not found")
         return
+
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="background:#0E1117;padding:45px 20px 35px;text-align:center;">
@@ -236,50 +180,47 @@ df["Shipping_Pressure_Index"] = (
     df["Days for shipment (scheduled)"].replace(0, np.nan)
 ).fillna(0)
 
-df["Is_Express_Shipping"] = df["Shipping Mode"].astype(str).str.contains("express", case=False).astype(int)
-df["Order_Complexity_Score"] = df["Order Item Quantity"] * (1 + df["Order Item Discount Rate"])
+df["Is_Express_Shipping"] = (
+    df["Shipping Mode"].astype(str).str.contains("express", case=False).astype(int)
+)
+
+df["Order_Complexity_Score"] = (
+    df["Order Item Quantity"] * (1 + df["Order Item Discount Rate"])
+)
 
 region_risk = df.groupby("Order Region")[TARGET].mean()
 df["Region_Delay_Risk"] = df["Order Region"].map(region_risk).fillna(df[TARGET].mean())
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS (FIXED)
+# SIDEBAR FILTERS (NO EMPTY SPACE NOW)
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("🚚 Logistics")
 ship_filter = st.sidebar.multiselect(
-    label="Shipping Mode",
-    options=sorted(df["Shipping Mode"].dropna().unique()),
-    placeholder="Select shipping modes",
-    label_visibility="collapsed"
+    "Shipping Mode",
+    sorted(df["Shipping Mode"].dropna().unique())
 )
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("🌍 Geography")
 market_filter = st.sidebar.multiselect(
-    label="Market",
-    options=sorted(df["Market"].dropna().unique()),
-    placeholder="Select markets",
-    label_visibility="collapsed"
+    "Market",
+    sorted(df["Market"].dropna().unique())
 )
 region_filter = st.sidebar.multiselect(
-    label="Order Region",
-    options=sorted(df["Order Region"].dropna().unique()),
-    placeholder="Select regions",
-    label_visibility="collapsed"
+    "Order Region",
+    sorted(df["Order Region"].dropna().unique())
 )
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("👥 Customer")
 segment_filter = st.sidebar.multiselect(
-    label="Customer Segment",
-    options=sorted(df["Customer Segment"].dropna().unique()),
-    placeholder="Select segments",
-    label_visibility="collapsed"
+    "Customer Segment",
+    sorted(df["Customer Segment"].dropna().unique())
 )
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
@@ -347,7 +288,9 @@ y_proba = model.predict_proba(X_test_enc)[:, 1]
 # ---------------------------------------------------------
 # METRICS
 # ---------------------------------------------------------
-threshold = st.sidebar.slider("🚨 High-Risk Probability Threshold", 0.30, 0.90, 0.70, 0.05)
+threshold = st.sidebar.slider(
+    "🚨 High-Risk Probability Threshold", 0.30, 0.90, 0.70, 0.05
+)
 
 roc = roc_auc_score(y_test, y_proba)
 prec = precision_score(y_test, y_proba >= threshold)
@@ -358,7 +301,7 @@ f1 = f1_score(y_test, y_proba >= threshold)
 # KPI SECTION
 # ---------------------------------------------------------
 st.subheader("📊 Executive Risk Overview")
-c1,c2,c3,c4,c5 = st.columns(5)
+c1, c2, c3, c4, c5 = st.columns(5)
 
 def kpi(col, title, value):
     col.markdown(f"""
@@ -368,20 +311,25 @@ def kpi(col, title, value):
     </div>
     """, unsafe_allow_html=True)
 
-kpi(c1,"Orders Analysed",f"{len(df):,}")
-kpi(c2,"ROC-AUC",round(roc,3))
-kpi(c3,"Precision",round(prec,3))
-kpi(c4,"Recall",round(rec,3))
-kpi(c5,"F1 Score",round(f1,3))
+kpi(c1, "Orders Analysed", f"{len(df):,}")
+kpi(c2, "ROC-AUC", round(roc, 3))
+kpi(c3, "Precision", round(prec, 3))
+kpi(c4, "Recall", round(rec, 3))
+kpi(c5, "F1 Score", round(f1, 3))
 
 # ---------------------------------------------------------
 # CONFUSION MATRIX
 # ---------------------------------------------------------
 st.subheader("🧮 Model Error Analysis – Confusion Matrix")
-cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
-cm_df = pd.DataFrame(cm, index=["Actual On-Time","Actual Late"], columns=["Predicted On-Time","Predicted Late"])
-fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
 
+cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
+cm_df = pd.DataFrame(
+    cm,
+    index=["Actual On-Time", "Actual Late"],
+    columns=["Predicted On-Time", "Predicted Late"]
+)
+
+fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(fig_cm, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
@@ -396,7 +344,7 @@ def style(fig, title):
         title_font_size=TITLE_SIZE,
         xaxis_title_font_size=AXIS_LABEL_SIZE,
         yaxis_title_font_size=AXIS_LABEL_SIZE,
-        margin=dict(l=40,r=20,t=50,b=40)
+        margin=dict(l=40, r=20, t=50, b=40)
     )
     fig.update_xaxes(tickfont_size=TICK_SIZE)
     fig.update_yaxes(tickfont_size=TICK_SIZE)
@@ -406,7 +354,7 @@ def style(fig, title):
 # VISUALS
 # ---------------------------------------------------------
 for fig, title in [
-    (px.histogram(pd.DataFrame({"Delay Probability":y_proba}), x="Delay Probability", nbins=30),
+    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}), x="Delay Probability", nbins=30),
      "Late Delivery Risk Distribution"),
     (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(), x="Order Region", y=TARGET),
      "Average Delay Risk by Region"),
@@ -422,12 +370,16 @@ for fig, title in [
 # ---------------------------------------------------------
 results = X_test.copy()
 results["Delay_Probability"] = y_proba
-results["Risk_Category"] = pd.cut(results["Delay_Probability"], [0,0.4,threshold,1], labels=["Low","Medium","High"])
+results["Risk_Category"] = pd.cut(
+    results["Delay_Probability"],
+    [0, 0.4, threshold, 1],
+    labels=["Low", "Medium", "High"]
+)
 
 st.subheader("🚨 High-Risk Orders – Operations Action Queue")
 st.dataframe(
-    results[results["Risk_Category"]=="High"]
-    .sort_values("Delay_Probability",ascending=False)
+    results[results["Risk_Category"] == "High"]
+    .sort_values("Delay_Probability", ascending=False)
     .head(50),
     use_container_width=True
 )
@@ -436,14 +388,16 @@ st.dataframe(
 # EXPLAINABILITY
 # ---------------------------------------------------------
 coef_df = pd.DataFrame({
-    "Feature":X_train_enc.columns,
-    "Impact":np.abs(model.named_steps["lr"].coef_[0])
-}).sort_values("Impact",ascending=False).head(15)
+    "Feature": X_train_enc.columns,
+    "Impact": np.abs(model.named_steps["lr"].coef_[0])
+}).sort_values("Impact", ascending=False).head(15)
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
-    style(px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
-          "Key Drivers of Late Delivery Risk"),
+    style(
+        px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+        "Key Drivers of Late Delivery Risk"
+    ),
     use_container_width=True
 )
 st.markdown('</div>', unsafe_allow_html=True)
@@ -454,6 +408,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
         return
+
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;
@@ -462,12 +417,14 @@ def render_footer():
         <div style="display:flex;gap:12px;align-items:center;">
             <img src="data:image/png;base64,{encoded}" style="height:50px;">
             <span>Mentored by 
-            <a href="https://www.linkedin.com/in/saiprasad-kagne/" target="_blank" style="color:#0A66C2;">
+            <a href="https://www.linkedin.com/in/saiprasad-kagne/"
+               target="_blank" style="color:#0A66C2;">
                Sai Prasad Kagne</a></span>
         </div>
         <span>
             Created by 
-            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6" target="_blank" style="color:#0A66C2;">
+            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
+               target="_blank" style="color:#0A66C2;">
                Vidit Kapoor</a>
         </span>
         <span>Version 1.0 | Feb 2026</span>
