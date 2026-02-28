@@ -35,20 +35,21 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# GLOBAL CONSTANTS
+# GLOBAL CONSTANTS (REFINED GRAPH FONTS)
 # ---------------------------------------------------------
 DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
-PLOTLY_FONT = dict(family="Arial", size=14, color="#EAEAEA")
-TITLE_SIZE = 22
-AXIS_LABEL_SIZE = 16
-TICK_SIZE = 14
+# ⬇⬇⬇ ONLY CHANGE IS HERE ⬇⬇⬇
+PLOTLY_FONT = dict(family="Arial", size=12, color="#EAEAEA")
+TITLE_SIZE = 18
+AXIS_LABEL_SIZE = 13
+TICK_SIZE = 11
 
 # ---------------------------------------------------------
-# GLOBAL UI STYLES (DESIGN ONLY)
+# GLOBAL UI STYLES
 # ---------------------------------------------------------
 st.markdown("""
 <style>
@@ -287,7 +288,7 @@ rec = recall_score(y_test, y_proba >= threshold)
 f1 = f1_score(y_test, y_proba >= threshold)
 
 # ---------------------------------------------------------
-# KPI SECTION (UPGRADED DESIGN)
+# KPI SECTION
 # ---------------------------------------------------------
 st.subheader("📊 Executive Risk Overview")
 c1, c2, c3, c4, c5 = st.columns(5)
@@ -333,7 +334,8 @@ def style(fig, title):
         font=PLOTLY_FONT,
         title_font_size=TITLE_SIZE,
         xaxis_title_font_size=AXIS_LABEL_SIZE,
-        yaxis_title_font_size=AXIS_LABEL_SIZE
+        yaxis_title_font_size=AXIS_LABEL_SIZE,
+        margin=dict(l=40, r=20, t=50, b=40)
     )
     fig.update_xaxes(tickfont_size=TICK_SIZE)
     fig.update_yaxes(tickfont_size=TICK_SIZE)
@@ -427,7 +429,7 @@ st.plotly_chart(
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (ORIGINAL – UNCHANGED)
+# FOOTER (UNCHANGED)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
