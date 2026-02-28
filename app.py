@@ -35,7 +35,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# GLOBAL CONSTANTS (ORIGINAL COLORS RESTORED)
+# GLOBAL CONSTANTS (UNCHANGED)
 # ---------------------------------------------------------
 DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
@@ -48,17 +48,17 @@ AXIS_LABEL_SIZE = 13
 TICK_SIZE = 11
 
 # ---------------------------------------------------------
-# GLOBAL UI STYLES (CLEAN + SAFE)
+# GLOBAL UI STYLES (ONLY EMPTY SIDEBAR ELEMENT REMOVED)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
 
-/* ========== REMOVE STREAMLIT SIDEBAR SEARCH (EMPTY BOX) ========== */
-section[data-testid="stSidebar"] input[type="text"] {
+/* ===== REMOVE STREAMLIT SIDEBAR SEARCH / EMPTY INPUT ===== */
+section[data-testid="stSidebar"] > div:first-child {
     display: none !important;
 }
 
-/* ========== SIDEBAR ========== */
+/* ===== SIDEBAR ===== */
 section[data-testid="stSidebar"] {
     background-color: #0E1117;
     padding: 18px 14px;
@@ -85,7 +85,7 @@ section[data-testid="stSidebar"] label {
     border: 1px solid #232A33;
 }
 
-/* ========== KPI CARDS ========== */
+/* ===== KPI CARDS ===== */
 .kpi-card {
     background: #161B22;
     border: 1px solid #232A33;
@@ -105,7 +105,7 @@ section[data-testid="stSidebar"] label {
     font-weight: 700;
 }
 
-/* ========== CHART CARDS ========== */
+/* ===== CHART CARDS ===== */
 .chart-card {
     background:#161B22;
     padding:18px;
@@ -114,7 +114,7 @@ section[data-testid="stSidebar"] label {
     margin-bottom:30px;
 }
 
-/* ========== DATAFRAME ========== */
+/* ===== DATAFRAME ===== */
 div[data-testid="stDataFrame"] {
     border-radius: 14px;
     overflow: hidden;
@@ -135,7 +135,8 @@ def render_header():
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="background:#0E1117;padding:45px 20px 35px;text-align:center;">
-        <img src="data:image/png;base64,{encoded}" style="width:15rem;margin-bottom:20px;">
+        <img src="data:image/png;base64,{encoded}"
+             style="width:15rem;margin-bottom:20px;">
         <h1 style="color:white;font-size:39px;margin:0;font-weight:700;">
             Predictive Late Delivery Risk Intelligence
         </h1>
@@ -181,18 +182,25 @@ df["Shipping_Pressure_Index"] = (
 ).fillna(0)
 
 df["Is_Express_Shipping"] = (
-    df["Shipping Mode"].astype(str).str.contains("express", case=False).astype(int)
+    df["Shipping Mode"].astype(str)
+    .str.contains("express", case=False)
+    .astype(int)
 )
 
 df["Order_Complexity_Score"] = (
-    df["Order Item Quantity"] * (1 + df["Order Item Discount Rate"])
+    df["Order Item Quantity"] *
+    (1 + df["Order Item Discount Rate"])
 )
 
 region_risk = df.groupby("Order Region")[TARGET].mean()
-df["Region_Delay_Risk"] = df["Order Region"].map(region_risk).fillna(df[TARGET].mean())
+df["Region_Delay_Risk"] = (
+    df["Order Region"]
+    .map(region_risk)
+    .fillna(df[TARGET].mean())
+)
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS (NO EMPTY SPACE NOW)
+# SIDEBAR FILTERS (NO EMPTY SPACE ANYMORE)
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -259,7 +267,10 @@ y = df[TARGET]
 # TRAIN / TEST SPLIT
 # ---------------------------------------------------------
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, stratify=y, test_size=0.25, random_state=42
+    X, y,
+    stratify=y,
+    test_size=0.25,
+    random_state=42
 )
 
 @st.cache_data
@@ -277,7 +288,10 @@ X_train_enc, X_test_enc = encode(X_train, X_test)
 def train_model(X, y):
     model = Pipeline([
         ("scaler", StandardScaler()),
-        ("lr", LogisticRegression(max_iter=1000, class_weight="balanced"))
+        ("lr", LogisticRegression(
+            max_iter=1000,
+            class_weight="balanced"
+        ))
     ])
     model.fit(X, y)
     return model
@@ -289,7 +303,8 @@ y_proba = model.predict_proba(X_test_enc)[:, 1]
 # METRICS
 # ---------------------------------------------------------
 threshold = st.sidebar.slider(
-    "🚨 High-Risk Probability Threshold", 0.30, 0.90, 0.70, 0.05
+    "🚨 High-Risk Probability Threshold",
+    0.30, 0.90, 0.70, 0.05
 )
 
 roc = roc_auc_score(y_test, y_proba)
@@ -329,7 +344,12 @@ cm_df = pd.DataFrame(
     columns=["Predicted On-Time", "Predicted Late"]
 )
 
-fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
+fig_cm = px.imshow(
+    cm_df,
+    text_auto=True,
+    color_continuous_scale="Blues"
+)
+
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(fig_cm, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
@@ -343,8 +363,7 @@ def style(fig, title):
         font=PLOTLY_FONT,
         title_font_size=TITLE_SIZE,
         xaxis_title_font_size=AXIS_LABEL_SIZE,
-        yaxis_title_font_size=AXIS_LABEL_SIZE,
-        margin=dict(l=40, r=20, t=50, b=40)
+        yaxis_title_font_size=AXIS_LABEL_SIZE
     )
     fig.update_xaxes(tickfont_size=TICK_SIZE)
     fig.update_yaxes(tickfont_size=TICK_SIZE)
@@ -353,17 +372,47 @@ def style(fig, title):
 # ---------------------------------------------------------
 # VISUALS
 # ---------------------------------------------------------
-for fig, title in [
-    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}), x="Delay Probability", nbins=30),
-     "Late Delivery Risk Distribution"),
-    (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(), x="Order Region", y=TARGET),
-     "Average Delay Risk by Region"),
-    (px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(), x="Shipping Mode", y=TARGET),
-     "Average Delay Risk by Shipping Mode")
-]:
-    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.plotly_chart(style(fig, title), use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(
+    style(
+        px.histogram(
+            pd.DataFrame({"Delay Probability": y_proba}),
+            x="Delay Probability",
+            nbins=30
+        ),
+        "Late Delivery Risk Distribution"
+    ),
+    use_container_width=True
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(
+    style(
+        px.bar(
+            df.groupby("Order Region")[TARGET].mean().reset_index(),
+            x="Order Region",
+            y=TARGET
+        ),
+        "Average Delay Risk by Region"
+    ),
+    use_container_width=True
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(
+    style(
+        px.bar(
+            df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+            x="Shipping Mode",
+            y=TARGET
+        ),
+        "Average Delay Risk by Shipping Mode"
+    ),
+    use_container_width=True
+)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # HIGH-RISK ACTION QUEUE
@@ -395,7 +444,12 @@ coef_df = pd.DataFrame({
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
     style(
-        px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+        px.bar(
+            coef_df,
+            x="Impact",
+            y="Feature",
+            orientation="h"
+        ),
         "Key Drivers of Late Delivery Risk"
     ),
     use_container_width=True
