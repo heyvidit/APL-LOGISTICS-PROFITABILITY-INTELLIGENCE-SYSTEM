@@ -1,425 +1,414 @@
+# =========================================================
+# APL LOGISTICS – PREDICTIVE LATE DELIVERY RISK SYSTEM
+# Internship: Unified Mentor Pvt. Ltd.
+# Project: Predictive Supply Chain Risk Intelligence
+# Author: Vidit Kapoor
+# =========================================================
+
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
-from PIL import Image
 import base64
-from scipy import stats
+from pathlib import Path
 
-# ------------------------------------------------
-# PAGE CONFIG
-# ------------------------------------------------
-st.set_page_config(
-    page_title="Profit Intelligence Dashboard",
-    page_icon="favicon.png",
-    layout="wide",
-    initial_sidebar_state="expanded"
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import (
+    roc_auc_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix
 )
 
-# ------------------------------------------------
-# GLOBAL STYLE + COMPANY HEADER
-# ------------------------------------------------
+import plotly.express as px
+
+# ---------------------------------------------------------
+# PAGE CONFIG (MUST BE FIRST STREAMLIT COMMAND)
+# ---------------------------------------------------------
+st.set_page_config(
+    page_title="APL Logistics | Predictive Risk Intelligence",
+    layout="wide",
+    page_icon="favicon.jfif"   # ✅ favicon added
+)
+
+# ---------------------------------------------------------
+# GLOBAL CONSTANTS
+# ---------------------------------------------------------
+DATA_PATH = Path("APL_Logistics.csv.gz")
+APL_LOGO_PATH = Path("APL_Logo.png")
+UNIFIED_LOGO_PATH = Path("unified logo.png")
+TARGET = "Late_delivery_risk"
+
+# Chart typography (balanced & professional)
+PLOTLY_FONT = dict(family="Arial", size=14, color="#EAEAEA")
+TITLE_SIZE = 22
+AXIS_LABEL_SIZE = 16
+TICK_SIZE = 14
+
+# ---------------------------------------------------------
+# GLOBAL SIDEBAR STYLING
+# ---------------------------------------------------------
 st.markdown("""
 <style>
-.company-header {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 0;
-    margin-bottom: 2rem;
+section[data-testid="stSidebar"] h3 {
+    font-size: 17px;
+    margin-top: 20px;
 }
-.company-logo {
-    height: 4rem;
-    width: auto;
+section[data-testid="stSidebar"] label {
+    font-size: 14px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-def add_company_header():
-    try:
-        with open("logo.png", "rb") as f:
-            encoded_logo = base64.b64encode(f.read()).decode()
-        header_html = f"""
-        <div class="company-header">
-            <img src="data:image/png;base64,{encoded_logo}" class="company-logo">
-        </div>
-        """
-        st.markdown(header_html, unsafe_allow_html=True)
-    except:
-        pass
+# ---------------------------------------------------------
+# HEADER
+# ---------------------------------------------------------
+def render_header():
+    if not APL_LOGO_PATH.exists():
+        st.warning("APL logo not found")
+        return
 
-add_company_header()
+    encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
+    st.markdown(f"""
+    <div style="background:#0E1117;padding:45px 20px 35px;text-align:center;">
+        <img src="data:image/png;base64,{encoded}"
+             style="width:15rem;margin-bottom:20px;">
+        <h1 style="color:white;font-size:39px;margin:0;font-weight:700;">
+            Predictive Late Delivery Risk Intelligence
+        </h1>
+        <p style="color:#B0B3B8;font-size:18px;margin-top:8px;">
+            APL Logistics | Proactive Supply Chain Risk Analytics
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# ------------------------------------------------
-# LOAD DATA
-# ------------------------------------------------
-@st.cache_data(show_spinner=False)
+render_header()
+st.markdown("")
+
+# ---------------------------------------------------------
+# LOAD DATA (CACHED & FAST)
+# ---------------------------------------------------------
+@st.cache_data
 def load_data():
-    df = pd.read_csv("Nassau Candy Distributor (1).csv")
-
-    # Original Cleaning
-    df = df.drop_duplicates(subset=["Order ID", "Product ID"])
-    df = df[(df["Sales"] > 0) & (df["Units"] > 0)]
-    df = df.dropna(subset=["Sales", "Units", "Gross Profit", "Cost"])
-    df["Division"] = df["Division"].str.strip()
-    df["Product Name"] = df["Product Name"].str.strip()
-    df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
-    df["Ship Date"] = pd.to_datetime(df["Ship Date"], errors="coerce")
-
-    # Profit Validation
-    df["Calculated Profit"] = df["Sales"] - df["Cost"]
-    df["Profit Mismatch"] = df["Gross Profit"] - df["Calculated Profit"]
-
-    # Remove negative gross profit
-    df = df[df["Gross Profit"] >= 0]
-
-    # Ship date validation
-    df = df[df["Ship Date"] >= df["Order Date"]]
-
-    # Metrics
-    df["Gross Margin %"] = df["Gross Profit"] / df["Sales"]
-    df["Profit per Unit"] = df["Gross Profit"] / df["Units"]
-    df["Cost per Unit"] = df["Cost"] / df["Units"]
-    df["Avg Selling Price"] = df["Sales"] / df["Units"]
-
-    # Outlier Detection (Z-score on margin)
-    df["Margin Z-Score"] = np.abs(stats.zscore(df["Gross Margin %"]))
-    df["Margin Outlier"] = df["Margin Z-Score"] > 3
-
-    return df
+    df = pd.read_csv(DATA_PATH, encoding="latin1")
+    return df.sample(min(len(df), 50000), random_state=42)
 
 df = load_data()
 
-# ------------------------------------------------
-# FACTORY MAPPING
-# ------------------------------------------------
-factory_map = {
-    "Wonka Bar - Nutty Crunch Surprise": "Lot's O' Nuts",
-    "Wonka Bar - Fudge Mallows": "Lot's O' Nuts",
-    "Wonka Bar -Scrumdiddlyumptious": "Lot's O' Nuts",
-    "Wonka Bar - Milk Chocolate": "Wicked Choccy's",
-    "Wonka Bar - Triple Dazzle Caramel": "Wicked Choccy's",
-    "Laffy Taffy": "Sugar Shack",
-    "SweeTARTS": "Sugar Shack",
-    "Nerds": "Sugar Shack",
-    "Fun Dip": "Sugar Shack",
-    "Fizzy Lifting Drinks": "Sugar Shack",
-    "Everlasting Gobstopper": "Secret Factory",
-    "Hair Toffee": "The Other Factory",
-    "Lickable Wallpaper": "Secret Factory",
-    "Wonka Gum": "Secret Factory",
-    "Kazookles": "The Other Factory"
-}
+# ---------------------------------------------------------
+# DATA CLEANING (NO LEAKAGE)
+# ---------------------------------------------------------
+LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
+HIGH_CARDINALITY = [
+    "Customer City","Customer State","Order City","Order State",
+    "Customer Country","Order Country",
+    "Customer Id","Order Customer Id",
+    "Customer Fname","Customer Lname",
+    "Customer Street","Customer Zipcode","Product Name"
+]
 
-factory_coords = {
-    "Lot's O' Nuts": [32.881893, -111.768036],
-    "Wicked Choccy's": [32.076176, -81.088371],
-    "Sugar Shack": [48.11914, -96.18115],
-    "Secret Factory": [41.446333, -90.565487],
-    "The Other Factory": [35.1175, -89.971107]
-}
-
-df["Factory"] = df["Product Name"].map(factory_map)
-
-# ------------------------------------------------
-# SIDEBAR (UNCHANGED)
-# ------------------------------------------------
-st.sidebar.header("Analysis Controls")
-
-st.sidebar.markdown(
-    "Refine your dashboard using these controls. Focus on key products, divisions, and time periods."
+df.drop(
+    columns=[c for c in LEAKAGE_COLS + HIGH_CARDINALITY if c in df.columns],
+    inplace=True
 )
 
-st.sidebar.markdown(
-    """
-    <style>
-    .stDateInput > div[data-baseweb="select"] > div:first-child {
-        max-height: 7rem;
-        overflow-y: auto;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
+# ---------------------------------------------------------
+# FEATURE ENGINEERING
+# ---------------------------------------------------------
+df["Shipping_Pressure_Index"] = (
+    df["Order Item Quantity"] /
+    df["Days for shipment (scheduled)"].replace(0, np.nan)
+).fillna(0)
+
+df["Is_Express_Shipping"] = (
+    df["Shipping Mode"]
+    .astype(str)
+    .str.contains("express", case=False)
+    .astype(int)
 )
 
-st.sidebar.subheader("Date & Scope")
-date_range = st.sidebar.date_input(
-    "Order Date Range",
-    value=(df["Order Date"].min(), df["Order Date"].max())
-)
-division_filter = st.sidebar.multiselect(
-    "Division",
-    df["Division"].unique(),
-    default=df["Division"].unique()
+df["Order_Complexity_Score"] = (
+    df["Order Item Quantity"] *
+    (1 + df["Order Item Discount Rate"])
 )
 
-st.sidebar.subheader("Product Controls")
-all_products = df["Product Name"].unique().tolist()
-
-product_search = st.sidebar.multiselect(
-    "Select Products",
-    options=all_products,
-    default=[]
+region_risk = df.groupby("Order Region")[TARGET].mean()
+df["Region_Delay_Risk"] = (
+    df["Order Region"]
+    .map(region_risk)
+    .fillna(df[TARGET].mean())
 )
 
-margin_threshold = st.sidebar.slider(
-    "Margin Filter Threshold (%)",
-    0, 100, 0
+# ---------------------------------------------------------
+# SIDEBAR FILTERS
+# ---------------------------------------------------------
+st.sidebar.header("🔎 Filters")
+
+st.sidebar.subheader("🚚 Logistics")
+ship_filter = st.sidebar.multiselect(
+    "Shipping Mode", sorted(df["Shipping Mode"].dropna().unique())
 )
 
-st.sidebar.subheader("Dashboard Module")
-page = st.sidebar.radio(
-    "",
-    [
-        "Executive Intelligence",
-        "Product Portfolio Analysis",
-        "Division & Factory Performance",
-        "Cost & Margin Diagnostics",
-        "Profit Concentration Analysis",
-        "Factory-Product Map",
-        "Strategic Recommendations"
-    ]
+st.sidebar.subheader("🌍 Geography")
+market_filter = st.sidebar.multiselect(
+    "Market", sorted(df["Market"].dropna().unique())
+)
+region_filter = st.sidebar.multiselect(
+    "Order Region", sorted(df["Order Region"].dropna().unique())
 )
 
-# ------------------------------------------------
-# FILTER DATA
-# ------------------------------------------------
-filtered_df = df[
-    (df["Division"].isin(division_filter)) &
-    (df["Order Date"] >= pd.to_datetime(date_range[0])) &
-    (df["Order Date"] <= pd.to_datetime(date_range[1])) &
-    (df["Gross Margin %"] * 100 >= margin_threshold)
-].copy()
+st.sidebar.subheader("👥 Customer")
+segment_filter = st.sidebar.multiselect(
+    "Customer Segment", sorted(df["Customer Segment"].dropna().unique())
+)
 
-if product_search:
-    filtered_df = filtered_df[filtered_df["Product Name"].isin(product_search)]
+if ship_filter:
+    df = df[df["Shipping Mode"].isin(ship_filter)]
+if market_filter:
+    df = df[df["Market"].isin(market_filter)]
+if region_filter:
+    df = df[df["Order Region"].isin(region_filter)]
+if segment_filter:
+    df = df[df["Customer Segment"].isin(segment_filter)]
 
-if filtered_df.empty:
-    st.warning("No data available for selected filters.")
-    st.stop()
+# ---------------------------------------------------------
+# MODEL DATA
+# ---------------------------------------------------------
+FEATURES = [
+    "Days for shipment (scheduled)",
+    "Order Item Quantity",
+    "Shipping_Pressure_Index",
+    "Region_Delay_Risk",
+    "Is_Express_Shipping",
+    "Order_Complexity_Score",
+    "Sales",
+    "Order Item Discount Rate",
+    "Order Profit Per Order",
+    "Benefit per order",
+    "Market",
+    "Order Region",
+    "Customer Segment"
+]
 
-filtered_df["Month"] = filtered_df["Order Date"].dt.to_period("M")
+X = df[FEATURES]
+y = df[TARGET]
 
-# ------------------------------------------------
-# AGGREGATION
-# ------------------------------------------------
-product_perf = (
-    filtered_df
-    .groupby(["Division", "Product Name", "Factory"], observed=True)
-    .agg(
-        Total_Sales=("Sales", "sum"),
-        Total_Profit=("Gross Profit", "sum"),
-        Total_Units=("Units", "sum"),
-        Total_Cost=("Cost", "sum")
+# ---------------------------------------------------------
+# TRAIN / TEST SPLIT
+# ---------------------------------------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    stratify=y,
+    test_size=0.25,
+    random_state=42
+)
+
+@st.cache_data
+def encode(train, test):
+    train_enc = pd.get_dummies(train, drop_first=True)
+    test_enc = test.reindex(columns=train_enc.columns, fill_value=0)
+    return train_enc, test_enc
+
+X_train_enc, X_test_enc = encode(X_train, X_test)
+
+# ---------------------------------------------------------
+# MODEL TRAINING
+# ---------------------------------------------------------
+@st.cache_resource
+def train_model(X, y):
+    model = Pipeline([
+        ("scaler", StandardScaler()),
+        ("lr", LogisticRegression(
+            max_iter=1000,
+            class_weight="balanced"
+        ))
+    ])
+    model.fit(X, y)
+    return model
+
+model = train_model(X_train_enc, y_train)
+y_proba = model.predict_proba(X_test_enc)[:, 1]
+
+# ---------------------------------------------------------
+# METRICS
+# ---------------------------------------------------------
+threshold = st.sidebar.slider(
+    "🚨 High-Risk Probability Threshold",
+    0.30, 0.90, 0.70, 0.05
+)
+
+roc = roc_auc_score(y_test, y_proba)
+prec = precision_score(y_test, y_proba >= threshold)
+rec = recall_score(y_test, y_proba >= threshold)
+f1 = f1_score(y_test, y_proba >= threshold)
+
+# ---------------------------------------------------------
+# KPI SECTION
+# ---------------------------------------------------------
+st.subheader("📊 Executive Risk Overview")
+c1, c2, c3, c4, c5 = st.columns(5)
+c1.metric("Orders Analysed", f"{len(df):,}")
+c2.metric("ROC-AUC", round(roc, 3))
+c3.metric("Precision", round(prec, 3))
+c4.metric("Recall", round(rec, 3))
+c5.metric("F1 Score", round(f1, 3))
+
+# ---------------------------------------------------------
+# CONFUSION MATRIX
+# ---------------------------------------------------------
+st.subheader("🧮 Model Error Analysis – Confusion Matrix")
+
+y_pred = (y_proba >= threshold).astype(int)
+cm = confusion_matrix(y_test, y_pred)
+
+cm_df = pd.DataFrame(
+    cm,
+    index=["Actual On-Time", "Actual Late"],
+    columns=["Predicted On-Time", "Predicted Late"]
+)
+
+fig_cm = px.imshow(
+    cm_df,
+    text_auto=True,
+    color_continuous_scale="Blues"
+)
+
+fig_cm.update_layout(
+    title="Confusion Matrix at Selected Risk Threshold",
+    font=PLOTLY_FONT,
+    title_font_size=TITLE_SIZE,
+    xaxis_title_font_size=AXIS_LABEL_SIZE,
+    yaxis_title_font_size=AXIS_LABEL_SIZE
+)
+fig_cm.update_xaxes(tickfont_size=TICK_SIZE)
+fig_cm.update_yaxes(tickfont_size=TICK_SIZE)
+
+st.plotly_chart(fig_cm, use_container_width=True)
+
+# ---------------------------------------------------------
+# CHART STYLING HELPER
+# ---------------------------------------------------------
+def style(fig, title):
+    fig.update_layout(
+        title=title,
+        font=PLOTLY_FONT,
+        title_font_size=TITLE_SIZE,
+        xaxis_title_font_size=AXIS_LABEL_SIZE,
+        yaxis_title_font_size=AXIS_LABEL_SIZE
     )
-    .reset_index()
+    fig.update_xaxes(tickfont_size=TICK_SIZE)
+    fig.update_yaxes(tickfont_size=TICK_SIZE)
+    return fig
+
+# ---------------------------------------------------------
+# VISUALS
+# ---------------------------------------------------------
+st.plotly_chart(
+    style(
+        px.histogram(
+            pd.DataFrame({"Delay Probability": y_proba}),
+            x="Delay Probability",
+            nbins=30
+        ),
+        "Late Delivery Risk Distribution"
+    ),
+    use_container_width=True
 )
 
-product_perf["Avg_Margin"] = product_perf["Total_Profit"] / product_perf["Total_Sales"]
-product_perf["Profit per Unit"] = product_perf["Total_Profit"] / product_perf["Total_Units"]
-product_perf["Cost per Unit"] = product_perf["Total_Cost"] / product_perf["Total_Units"]
-product_perf["Avg Selling Price"] = product_perf["Total_Sales"] / product_perf["Total_Units"]
-
-total_sales = product_perf["Total_Sales"].sum()
-total_profit = product_perf["Total_Profit"].sum()
-
-product_perf["Revenue Contribution %"] = product_perf["Total_Sales"] / total_sales * 100
-product_perf["Profit Contribution %"] = product_perf["Total_Profit"] / total_profit * 100
-
-# Division Contribution %
-division_contrib = product_perf.groupby("Division").agg(
-    Revenue=("Total_Sales","sum"),
-    Profit=("Total_Profit","sum")
-).reset_index()
-
-division_contrib["Revenue Contribution %"] = division_contrib["Revenue"] / total_sales * 100
-division_contrib["Profit Contribution %"] = division_contrib["Profit"] / total_profit * 100
-division_contrib["True Margin"] = division_contrib["Profit"] / division_contrib["Revenue"]
-
-# Division Volatility
-division_volatility = (
-    filtered_df.groupby(["Division","Month"])["Gross Margin %"]
-    .mean()
-    .groupby("Division")
-    .std()
-    .reset_index(name="Margin Volatility")
+st.plotly_chart(
+    style(
+        px.bar(
+            df.groupby("Order Region")[TARGET].mean().reset_index(),
+            x="Order Region",
+            y=TARGET
+        ),
+        "Average Delay Risk by Region"
+    ),
+    use_container_width=True
 )
 
-division_contrib = division_contrib.merge(division_volatility,on="Division",how="left")
-
-# Revenue Pareto
-revenue_pareto = product_perf.sort_values("Total_Sales",ascending=False)
-revenue_pareto["Cumulative Revenue %"] = revenue_pareto["Total_Sales"].cumsum()/total_sales*100
-
-# Dependency Risk
-profit_pareto = product_perf.sort_values("Total_Profit",ascending=False)
-profit_pareto["Cumulative Profit %"] = profit_pareto["Total_Profit"].cumsum()/total_profit*100
-
-revenue_80_count = revenue_pareto[revenue_pareto["Cumulative Revenue %"]>=80].index.min()+1
-profit_80_count = profit_pareto[profit_pareto["Cumulative Profit %"]>=80].index.min()+1
-
-dependency_risk = "High" if profit_80_count <= 3 else "Moderate" if profit_80_count <=5 else "Low"
-
-# Automated Margin Risk Flag
-product_perf["Margin Risk Flag"] = np.where(
-    product_perf["Avg_Margin"] < product_perf["Avg_Margin"].median(),
-    "Risk",
-    "Healthy"
+st.plotly_chart(
+    style(
+        px.bar(
+            df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+            x="Shipping Mode",
+            y=TARGET
+        ),
+        "Average Delay Risk by Shipping Mode"
+    ),
+    use_container_width=True
 )
 
-# Factory Performance
-factory_perf = product_perf.groupby("Factory").agg(
-    Revenue=("Total_Sales","sum"),
-    Profit=("Total_Profit","sum"),
-    Avg_Margin=("Avg_Margin","mean"),
-    Cost_per_Unit=("Cost per Unit","mean")
-).reset_index()
+# ---------------------------------------------------------
+# HIGH-RISK ACTION QUEUE
+# ---------------------------------------------------------
+results = X_test.copy()
+results["Delay_Probability"] = y_proba
+results["Risk_Category"] = pd.cut(
+    results["Delay_Probability"],
+    [0, 0.4, threshold, 1],
+    labels=["Low", "Medium", "High"]
+)
 
-# ------------------------------------------------
-# EXISTING PAGES REMAIN UNCHANGED
-# ------------------------------------------------
-def executive_page():
-    st.title("Executive Profit Intelligence")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Revenue", f"${total_sales:,.0f}")
-    col2.metric("Total Profit", f"${total_profit:,.0f}")
-    col3.metric("True Average Margin", f"{(total_profit/total_sales)*100:.2f}%")
-    st.markdown("---")
+st.subheader("🚨 High-Risk Orders – Operations Action Queue")
+st.dataframe(
+    results[results["Risk_Category"] == "High"]
+    .sort_values("Delay_Probability", ascending=False)
+    .head(50),
+    use_container_width=True
+)
 
-    monthly = filtered_df.groupby("Month").agg(
-        Revenue=("Sales", "sum"),
-        Profit=("Gross Profit", "sum")
-    ).reset_index()
-    monthly["Margin %"] = monthly["Profit"] / monthly["Revenue"]
-    monthly["Month"] = monthly["Month"].astype(str)
+# ---------------------------------------------------------
+# EXPLAINABILITY
+# ---------------------------------------------------------
+coef_df = pd.DataFrame({
+    "Feature": X_train_enc.columns,
+    "Impact": np.abs(model.named_steps["lr"].coef_[0])
+}).sort_values("Impact", ascending=False).head(15)
 
-    fig_trend = px.line(monthly, x="Month", y="Margin %",
-                        title="Monthly Margin Trend",
-                        template="plotly_dark")
-    st.plotly_chart(fig_trend, use_container_width=True)
+st.plotly_chart(
+    style(
+        px.bar(
+            coef_df,
+            x="Impact",
+            y="Feature",
+            orientation="h"
+        ),
+        "Key Drivers of Late Delivery Risk"
+    ),
+    use_container_width=True
+)
 
-    top10 = product_perf.sort_values("Total_Profit", ascending=False).head(10)
-    fig = px.bar(top10, x="Total_Profit", y="Product Name",
-                 orientation="h",
-                 template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
+# ---------------------------------------------------------
+# FOOTER
+# ---------------------------------------------------------
+def render_footer():
+    if not UNIFIED_LOGO_PATH.exists():
+        return
 
-def product_portfolio_page():
-    st.title("Product Portfolio Analysis")
-    fig = px.scatter(product_perf,
-                     x="Total_Sales",
-                     y="Total_Profit",
-                     size="Total_Units",
-                     template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-def division_page():
-    st.title("Division Performance")
-    fig = px.bar(division_contrib, x="Division",
-                 y=["Revenue","Profit"],
-                 barmode="group",
-                 template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-    st.dataframe(division_contrib)
-
-def cost_margin_page():
-    st.title("Cost & Margin Diagnostics")
-    fig1 = px.scatter(filtered_df,
-                      x="Cost",
-                      y="Sales",
-                      color="Division",
-                      trendline="ols",
-                      template="plotly_dark")
-    st.plotly_chart(fig1, use_container_width=True)
-
-    fig2 = px.scatter(filtered_df,
-                      x="Cost",
-                      y="Gross Margin %",
-                      color="Division",
-                      trendline="ols",
-                      template="plotly_dark")
-    st.plotly_chart(fig2, use_container_width=True)
-
-def pareto_page():
-    st.title("Profit Concentration (Pareto)")
-    fig = go.Figure()
-    fig.add_bar(x=profit_pareto["Product Name"], y=profit_pareto["Total_Profit"])
-    fig.add_scatter(x=profit_pareto["Product Name"],
-                    y=profit_pareto["Cumulative Profit %"],
-                    yaxis="y2")
-    fig.update_layout(yaxis2=dict(overlaying='y', side='right'),
-                      template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.info(f"{profit_80_count} products contribute to 80% of total profit.")
-    st.info(f"{revenue_80_count} products contribute to 80% of total revenue.")
-    st.warning(f"Dependency Risk Level: {dependency_risk}")
-
-def factory_map_page():
-    st.title("Factory-Product Geographic Map")
-    map_data = factory_perf.copy()
-    map_data["Latitude"] = map_data["Factory"].map(lambda x: factory_coords[x][0])
-    map_data["Longitude"] = map_data["Factory"].map(lambda x: factory_coords[x][1])
-    fig = px.scatter_mapbox(map_data,
-                            lat="Latitude",
-                            lon="Longitude",
-                            size="Revenue",
-                            color="Avg_Margin",
-                            zoom=3,
-                            mapbox_style="carto-darkmatter")
-    st.plotly_chart(fig, use_container_width=True)
-
-def recommendation_page():
-    st.title("Strategic Recommendations")
-    st.write("1. Reprice low-margin high-volume SKUs.")
-    st.write("2. Renegotiate cost structure for high cost-per-unit factories.")
-    st.write("3. Scale niche high-margin products with marketing support.")
-    st.write("4. Monitor high volatility divisions for instability.")
-    st.dataframe(product_perf[product_perf["Margin Risk Flag"]=="Risk"])
-
-# ------------------------------------------------
-# FOOTER (UNCHANGED)
-# ------------------------------------------------
-def add_footer():
-    try:
-        with open("unified logo.png", "rb") as f:
-            encoded_logo = base64.b64encode(f.read()).decode()
-        footer_html = f"""
-        <div class='footer' style='display:flex; justify-content:space-between; align-items:center; padding:20px 40px; background-color:#0E1117; color:#ffffff; font-size:13px; font-family:Arial, sans-serif;'>
-            <div style='display:flex; align-items:center; gap:10px;'>
-                <img src='data:image/png;base64,{encoded_logo}' alt='Unified Logo' style='height:50px; width:auto'>
-                <span>Mentored by <a href='https://www.linkedin.com/in/saiprasad-kagne/' target='_blank' style='color:#0A66C2; text-decoration:none;'>Sai Prasad Kagne</a></span>
-            </div>
-            <div>
-                <span>Created by <a href='https://www.linkedin.com/in/vidit-kapoor-5062b02a6' target='_blank' style='color:#0A66C2; text-decoration:none;'>Vidit Kapoor</a></span>
-            </div>
-            <div>
-                <span>Version 1.0 | Last updated: Feb 2026</span>
-            </div>
+    encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
+    st.markdown(f"""
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:25px 40px;background:#0E1117;color:white;
+                font-size:16px;font-family:Arial;">
+        <div style="display:flex;gap:12px;align-items:center;">
+            <img src="data:image/png;base64,{encoded}" style="height:50px;">
+            <span>Mentored by 
+            <a href="https://www.linkedin.com/in/saiprasad-kagne/"
+               target="_blank" style="color:#0A66C2;">
+               Sai Prasad Kagne</a></span>
         </div>
-        """
-        st.markdown(footer_html, unsafe_allow_html=True)
-    except:
-        st.markdown("Footer Error")
+        <span>
+            Created by 
+            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
+               target="_blank" style="color:#0A66C2;">
+               Vidit Kapoor</a>
+        </span>
+        <span>Version 1.0 | Feb 2026</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-# ------------------------------------------------
-# ROUTING
-# ------------------------------------------------
-if page == "Executive Intelligence":
-    executive_page()
-elif page == "Product Portfolio Analysis":
-    product_portfolio_page()
-elif page == "Division & Factory Performance":
-    division_page()
-elif page == "Cost & Margin Diagnostics":
-    cost_margin_page()
-elif page == "Profit Concentration Analysis":
-    pareto_page()
-elif page == "Factory-Product Map":
-    factory_map_page()
-elif page == "Strategic Recommendations":
-    recommendation_page()
-
-add_footer()
+render_footer()
