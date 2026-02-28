@@ -31,7 +31,7 @@ import plotly.express as px
 st.set_page_config(
     page_title="APL Logistics | Predictive Risk Intelligence",
     layout="wide",
-    page_icon="favicon.jfif"   # ✅ favicon added
+    page_icon="favicon.jfif"
 )
 
 # ---------------------------------------------------------
@@ -42,24 +42,78 @@ APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
-# Chart typography (balanced & professional)
 PLOTLY_FONT = dict(family="Arial", size=14, color="#EAEAEA")
 TITLE_SIZE = 22
 AXIS_LABEL_SIZE = 16
 TICK_SIZE = 14
 
 # ---------------------------------------------------------
-# GLOBAL SIDEBAR STYLING
+# SIDEBAR DESIGN (IMPROVED – UI ONLY)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
+
+/* Sidebar container */
+section[data-testid="stSidebar"] {
+    background-color: #0E1117;
+    padding: 18px 12px;
+}
+
+/* Headers */
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3 {
-    font-size: 17px;
-    margin-top: 20px;
+    color: #EAEAEA;
+    font-weight: 600;
+    letter-spacing: 0.4px;
 }
+
+/* Section titles */
+section[data-testid="stSidebar"] h3 {
+    font-size: 15px;
+    margin: 18px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #232A33;
+}
+
+/* Labels */
 section[data-testid="stSidebar"] label {
-    font-size: 14px;
+    font-size: 13px;
+    color: #B0B3B8;
 }
+
+/* Inputs */
+section[data-testid="stSidebar"] .stMultiSelect,
+section[data-testid="stSidebar"] .stSelectbox {
+    background-color: #161B22;
+    border-radius: 8px;
+    padding: 6px;
+    margin-bottom: 14px;
+}
+
+/* Slider spacing */
+section[data-testid="stSidebar"] .stSlider {
+    padding: 8px 0 16px;
+}
+
+/* Card wrapper */
+.sidebar-card {
+    background-color: #161B22;
+    padding: 12px 12px 6px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    border: 1px solid #232A33;
+}
+
+/* Scrollbar */
+section[data-testid="stSidebar"] ::-webkit-scrollbar {
+    width: 6px;
+}
+section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {
+    background: #2A2F3A;
+    border-radius: 10px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,7 +143,7 @@ render_header()
 st.markdown("")
 
 # ---------------------------------------------------------
-# LOAD DATA (CACHED & FAST)
+# LOAD DATA
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
@@ -99,7 +153,7 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# DATA CLEANING (NO LEAKAGE)
+# DATA CLEANING
 # ---------------------------------------------------------
 LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
 HIGH_CARDINALITY = [
@@ -143,15 +197,18 @@ df["Region_Delay_Risk"] = (
 )
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS
+# SIDEBAR FILTERS (DESIGN ENHANCED – LOGIC SAME)
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
+st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("🚚 Logistics")
 ship_filter = st.sidebar.multiselect(
     "Shipping Mode", sorted(df["Shipping Mode"].dropna().unique())
 )
+st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
+st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("🌍 Geography")
 market_filter = st.sidebar.multiselect(
     "Market", sorted(df["Market"].dropna().unique())
@@ -159,11 +216,14 @@ market_filter = st.sidebar.multiselect(
 region_filter = st.sidebar.multiselect(
     "Order Region", sorted(df["Order Region"].dropna().unique())
 )
+st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
+st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("👥 Customer")
 segment_filter = st.sidebar.multiselect(
     "Customer Segment", sorted(df["Customer Segment"].dropna().unique())
 )
+st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 if ship_filter:
     df = df[df["Shipping Mode"].isin(ship_filter)]
@@ -283,104 +343,8 @@ fig_cm.update_layout(
     xaxis_title_font_size=AXIS_LABEL_SIZE,
     yaxis_title_font_size=AXIS_LABEL_SIZE
 )
-fig_cm.update_xaxes(tickfont_size=TICK_SIZE)
-fig_cm.update_yaxes(tickfont_size=TICK_SIZE)
 
 st.plotly_chart(fig_cm, use_container_width=True)
-
-# ---------------------------------------------------------
-# CHART STYLING HELPER
-# ---------------------------------------------------------
-def style(fig, title):
-    fig.update_layout(
-        title=title,
-        font=PLOTLY_FONT,
-        title_font_size=TITLE_SIZE,
-        xaxis_title_font_size=AXIS_LABEL_SIZE,
-        yaxis_title_font_size=AXIS_LABEL_SIZE
-    )
-    fig.update_xaxes(tickfont_size=TICK_SIZE)
-    fig.update_yaxes(tickfont_size=TICK_SIZE)
-    return fig
-
-# ---------------------------------------------------------
-# VISUALS
-# ---------------------------------------------------------
-st.plotly_chart(
-    style(
-        px.histogram(
-            pd.DataFrame({"Delay Probability": y_proba}),
-            x="Delay Probability",
-            nbins=30
-        ),
-        "Late Delivery Risk Distribution"
-    ),
-    use_container_width=True
-)
-
-st.plotly_chart(
-    style(
-        px.bar(
-            df.groupby("Order Region")[TARGET].mean().reset_index(),
-            x="Order Region",
-            y=TARGET
-        ),
-        "Average Delay Risk by Region"
-    ),
-    use_container_width=True
-)
-
-st.plotly_chart(
-    style(
-        px.bar(
-            df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
-            x="Shipping Mode",
-            y=TARGET
-        ),
-        "Average Delay Risk by Shipping Mode"
-    ),
-    use_container_width=True
-)
-
-# ---------------------------------------------------------
-# HIGH-RISK ACTION QUEUE
-# ---------------------------------------------------------
-results = X_test.copy()
-results["Delay_Probability"] = y_proba
-results["Risk_Category"] = pd.cut(
-    results["Delay_Probability"],
-    [0, 0.4, threshold, 1],
-    labels=["Low", "Medium", "High"]
-)
-
-st.subheader("🚨 High-Risk Orders – Operations Action Queue")
-st.dataframe(
-    results[results["Risk_Category"] == "High"]
-    .sort_values("Delay_Probability", ascending=False)
-    .head(50),
-    use_container_width=True
-)
-
-# ---------------------------------------------------------
-# EXPLAINABILITY
-# ---------------------------------------------------------
-coef_df = pd.DataFrame({
-    "Feature": X_train_enc.columns,
-    "Impact": np.abs(model.named_steps["lr"].coef_[0])
-}).sort_values("Impact", ascending=False).head(15)
-
-st.plotly_chart(
-    style(
-        px.bar(
-            coef_df,
-            x="Impact",
-            y="Feature",
-            orientation="h"
-        ),
-        "Key Drivers of Late Delivery Risk"
-    ),
-    use_container_width=True
-)
 
 # ---------------------------------------------------------
 # FOOTER
@@ -392,21 +356,9 @@ def render_footer():
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;
-                padding:25px 40px;background:#0E1117;color:white;
-                font-size:16px;font-family:Arial;">
-        <div style="display:flex;gap:12px;align-items:center;">
-            <img src="data:image/png;base64,{encoded}" style="height:50px;">
-            <span>Mentored by 
-            <a href="https://www.linkedin.com/in/saiprasad-kagne/"
-               target="_blank" style="color:#0A66C2;">
-               Sai Prasad Kagne</a></span>
-        </div>
-        <span>
-            Created by 
-            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
-               target="_blank" style="color:#0A66C2;">
-               Vidit Kapoor</a>
-        </span>
+                padding:25px 40px;background:#0E1117;color:white;">
+        <span>Mentored by Sai Prasad Kagne</span>
+        <span>Created by Vidit Kapoor</span>
         <span>Version 1.0 | Feb 2026</span>
     </div>
     """, unsafe_allow_html=True)
