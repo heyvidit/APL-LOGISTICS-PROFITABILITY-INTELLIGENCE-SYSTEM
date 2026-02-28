@@ -1,17 +1,7 @@
 [theme]
 base = "dark"
-
-# Primary action & highlights (slightly refined blue)
 primaryColor = "#2A7FFF"
-
-# Main app background (unchanged – already excellent)
 backgroundColor = "#0E1117"
-
-# Cards, sidebar, chart containers (slightly lifted contrast)
 secondaryBackgroundColor = "#161B22"
-
-# Main text color (soft white, reduced glare)
 textColor = "#E6E6E6"
-
-# Clean analytics-friendly font
 font = "sans serif"
