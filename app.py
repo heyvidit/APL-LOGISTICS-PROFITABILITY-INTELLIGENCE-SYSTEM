@@ -26,12 +26,12 @@ from sklearn.metrics import (
 import plotly.express as px
 
 # ---------------------------------------------------------
-# PAGE CONFIG (MUST BE FIRST STREAMLIT COMMAND)
+# PAGE CONFIG
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="APL Logistics | Predictive Risk Intelligence",
     layout="wide",
-    page_icon="favicon.jfif"   # ✅ favicon added
+    page_icon="favicon.jfif"
 )
 
 # ---------------------------------------------------------
@@ -42,14 +42,13 @@ APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
-# Chart typography (balanced & professional)
 PLOTLY_FONT = dict(family="Arial", size=14, color="#EAEAEA")
 TITLE_SIZE = 22
 AXIS_LABEL_SIZE = 16
 TICK_SIZE = 14
 
 # ---------------------------------------------------------
-# GLOBAL SIDEBAR STYLING
+# SIDEBAR STYLE
 # ---------------------------------------------------------
 st.markdown("""
 <style>
@@ -67,29 +66,26 @@ section[data-testid="stSidebar"] label {
 # HEADER
 # ---------------------------------------------------------
 def render_header():
-    if not APL_LOGO_PATH.exists():
-        st.warning("APL logo not found")
-        return
-
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="background:#0E1117;padding:45px 20px 35px;text-align:center;">
-        <img src="data:image/png;base64,{encoded}"
-             style="width:15rem;margin-bottom:20px;">
+        <img src="data:image/png;base64,{encoded}" style="width:15rem;margin-bottom:20px;">
         <h1 style="color:white;font-size:39px;margin:0;font-weight:700;">
             Predictive Late Delivery Risk Intelligence
         </h1>
         <p style="color:#B0B3B8;font-size:18px;margin-top:8px;">
             APL Logistics | Proactive Supply Chain Risk Analytics
         </p>
+        <p style="color:#9AA0A6;font-size:16px;margin-top:6px;">
+            Flag high-risk shipments <b>before dispatch</b> to enable proactive intervention
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
 render_header()
-st.markdown("")
 
 # ---------------------------------------------------------
-# LOAD DATA (CACHED & FAST)
+# LOAD DATA
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
@@ -99,7 +95,7 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# DATA CLEANING (NO LEAKAGE)
+# DATA CLEANING
 # ---------------------------------------------------------
 LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
 HIGH_CARDINALITY = [
@@ -124,8 +120,7 @@ df["Shipping_Pressure_Index"] = (
 ).fillna(0)
 
 df["Is_Express_Shipping"] = (
-    df["Shipping Mode"]
-    .astype(str)
+    df["Shipping Mode"].astype(str)
     .str.contains("express", case=False)
     .astype(int)
 )
@@ -137,8 +132,7 @@ df["Order_Complexity_Score"] = (
 
 region_risk = df.groupby("Order Region")[TARGET].mean()
 df["Region_Delay_Risk"] = (
-    df["Order Region"]
-    .map(region_risk)
+    df["Order Region"].map(region_risk)
     .fillna(df[TARGET].mean())
 )
 
@@ -147,20 +141,15 @@ df["Region_Delay_Risk"] = (
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
-st.sidebar.subheader("🚚 Logistics")
 ship_filter = st.sidebar.multiselect(
     "Shipping Mode", sorted(df["Shipping Mode"].dropna().unique())
 )
-
-st.sidebar.subheader("🌍 Geography")
 market_filter = st.sidebar.multiselect(
     "Market", sorted(df["Market"].dropna().unique())
 )
 region_filter = st.sidebar.multiselect(
     "Order Region", sorted(df["Order Region"].dropna().unique())
 )
-
-st.sidebar.subheader("👥 Customer")
 segment_filter = st.sidebar.multiselect(
     "Customer Segment", sorted(df["Customer Segment"].dropna().unique())
 )
@@ -196,14 +185,8 @@ FEATURES = [
 X = df[FEATURES]
 y = df[TARGET]
 
-# ---------------------------------------------------------
-# TRAIN / TEST SPLIT
-# ---------------------------------------------------------
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y,
-    stratify=y,
-    test_size=0.25,
-    random_state=42
+    X, y, stratify=y, test_size=0.25, random_state=42
 )
 
 @st.cache_data
@@ -214,17 +197,11 @@ def encode(train, test):
 
 X_train_enc, X_test_enc = encode(X_train, X_test)
 
-# ---------------------------------------------------------
-# MODEL TRAINING
-# ---------------------------------------------------------
 @st.cache_resource
 def train_model(X, y):
     model = Pipeline([
         ("scaler", StandardScaler()),
-        ("lr", LogisticRegression(
-            max_iter=1000,
-            class_weight="balanced"
-        ))
+        ("lr", LogisticRegression(max_iter=1000, class_weight="balanced"))
     ])
     model.fit(X, y)
     return model
@@ -236,8 +213,7 @@ y_proba = model.predict_proba(X_test_enc)[:, 1]
 # METRICS
 # ---------------------------------------------------------
 threshold = st.sidebar.slider(
-    "🚨 High-Risk Probability Threshold",
-    0.30, 0.90, 0.70, 0.05
+    "🚨 High-Risk Probability Threshold", 0.30, 0.90, 0.70, 0.05
 )
 
 roc = roc_auc_score(y_test, y_proba)
@@ -249,12 +225,21 @@ f1 = f1_score(y_test, y_proba >= threshold)
 # KPI SECTION
 # ---------------------------------------------------------
 st.subheader("📊 Executive Risk Overview")
+
 c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Orders Analysed", f"{len(df):,}")
+c1.metric("🚨 High-Risk Orders", f"{(y_proba >= threshold).sum():,}")
 c2.metric("ROC-AUC", round(roc, 3))
 c3.metric("Precision", round(prec, 3))
 c4.metric("Recall", round(rec, 3))
 c5.metric("F1 Score", round(f1, 3))
+
+with st.expander("ℹ️ How to use this dashboard"):
+    st.markdown("""
+    **1.** Adjust the **High-Risk Probability Threshold** to define risk tolerance  
+    **2.** Use filters (Region, Shipping Mode, Segment) to narrow focus  
+    **3.** Review **High-Risk Orders Queue** for immediate intervention  
+    **4.** Inspect **Key Risk Drivers** to understand why delays occur  
+    """)
 
 # ---------------------------------------------------------
 # CONFUSION MATRIX
@@ -270,80 +255,29 @@ cm_df = pd.DataFrame(
     columns=["Predicted On-Time", "Predicted Late"]
 )
 
-fig_cm = px.imshow(
-    cm_df,
-    text_auto=True,
-    color_continuous_scale="Blues"
-)
-
-fig_cm.update_layout(
-    title="Confusion Matrix at Selected Risk Threshold",
-    font=PLOTLY_FONT,
-    title_font_size=TITLE_SIZE,
-    xaxis_title_font_size=AXIS_LABEL_SIZE,
-    yaxis_title_font_size=AXIS_LABEL_SIZE
-)
-fig_cm.update_xaxes(tickfont_size=TICK_SIZE)
-fig_cm.update_yaxes(tickfont_size=TICK_SIZE)
-
-st.plotly_chart(fig_cm, use_container_width=True)
-
-# ---------------------------------------------------------
-# CHART STYLING HELPER
-# ---------------------------------------------------------
-def style(fig, title):
-    fig.update_layout(
-        title=title,
-        font=PLOTLY_FONT,
-        title_font_size=TITLE_SIZE,
-        xaxis_title_font_size=AXIS_LABEL_SIZE,
-        yaxis_title_font_size=AXIS_LABEL_SIZE
-    )
-    fig.update_xaxes(tickfont_size=TICK_SIZE)
-    fig.update_yaxes(tickfont_size=TICK_SIZE)
-    return fig
+st.plotly_chart(px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues"),
+                use_container_width=True)
 
 # ---------------------------------------------------------
 # VISUALS
 # ---------------------------------------------------------
-st.plotly_chart(
-    style(
-        px.histogram(
-            pd.DataFrame({"Delay Probability": y_proba}),
-            x="Delay Probability",
-            nbins=30
-        ),
-        "Late Delivery Risk Distribution"
-    ),
-    use_container_width=True
-)
+st.plotly_chart(px.histogram(pd.DataFrame({"Delay Probability": y_proba}),
+                             x="Delay Probability", nbins=30),
+                use_container_width=True)
+st.caption("📌 Insight: Most orders fall into low-to-medium risk, allowing focus on a smaller subset.")
 
-st.plotly_chart(
-    style(
-        px.bar(
-            df.groupby("Order Region")[TARGET].mean().reset_index(),
-            x="Order Region",
-            y=TARGET
-        ),
-        "Average Delay Risk by Region"
-    ),
-    use_container_width=True
-)
+st.plotly_chart(px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(),
+                        x="Order Region", y=TARGET),
+                use_container_width=True)
+st.caption("📌 Insight: Certain regions show consistently higher delay risk.")
 
-st.plotly_chart(
-    style(
-        px.bar(
-            df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
-            x="Shipping Mode",
-            y=TARGET
-        ),
-        "Average Delay Risk by Shipping Mode"
-    ),
-    use_container_width=True
-)
+st.plotly_chart(px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+                        x="Shipping Mode", y=TARGET),
+                use_container_width=True)
+st.caption("📌 Insight: Express shipping does not always reduce delay risk.")
 
 # ---------------------------------------------------------
-# HIGH-RISK ACTION QUEUE
+# ACTION QUEUE
 # ---------------------------------------------------------
 results = X_test.copy()
 results["Delay_Probability"] = y_proba
@@ -354,10 +288,14 @@ results["Risk_Category"] = pd.cut(
 )
 
 st.subheader("🚨 High-Risk Orders – Operations Action Queue")
+
 st.dataframe(
     results[results["Risk_Category"] == "High"]
     .sort_values("Delay_Probability", ascending=False)
-    .head(50),
+    .head(50)
+    .style
+    .background_gradient(cmap="Reds", subset=["Delay_Probability"])
+    .format({"Delay_Probability": "{:.2%}"}),
     use_container_width=True
 )
 
@@ -369,26 +307,13 @@ coef_df = pd.DataFrame({
     "Impact": np.abs(model.named_steps["lr"].coef_[0])
 }).sort_values("Impact", ascending=False).head(15)
 
-st.plotly_chart(
-    style(
-        px.bar(
-            coef_df,
-            x="Impact",
-            y="Feature",
-            orientation="h"
-        ),
-        "Key Drivers of Late Delivery Risk"
-    ),
-    use_container_width=True
-)
+st.plotly_chart(px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+                use_container_width=True)
 
 # ---------------------------------------------------------
 # FOOTER
 # ---------------------------------------------------------
 def render_footer():
-    if not UNIFIED_LOGO_PATH.exists():
-        return
-
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;
@@ -397,17 +322,15 @@ def render_footer():
         <div style="display:flex;gap:12px;align-items:center;">
             <img src="data:image/png;base64,{encoded}" style="height:50px;">
             <span>Mentored by 
-            <a href="https://www.linkedin.com/in/saiprasad-kagne/"
-               target="_blank" style="color:#0A66C2;">
+            <a href="https://www.linkedin.com/in/saiprasad-kagne/" target="_blank" style="color:#0A66C2;">
                Sai Prasad Kagne</a></span>
         </div>
         <span>
             Created by 
-            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
-               target="_blank" style="color:#0A66C2;">
+            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6" target="_blank" style="color:#0A66C2;">
                Vidit Kapoor</a>
         </span>
-        <span>Version 1.0 | Feb 2026</span>
+        <span>Version 1.1 | Feb 2026</span>
     </div>
     """, unsafe_allow_html=True)
 
