@@ -48,12 +48,12 @@ AXIS_LABEL_SIZE = 13
 TICK_SIZE = 11
 
 # ---------------------------------------------------------
-# ENHANCED ENTERPRISE UI / UX CSS
+# GLOBAL UI / UX CSS (WITH MULTISELECT FIX)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
 
-/* ===== DESIGN TOKENS ===== */
+/* ========= DESIGN TOKENS ========= */
 :root {
     --bg-main:#0E1117;
     --bg-card:#161B22;
@@ -64,17 +64,14 @@ st.markdown("""
 
     --primary:#2A7FFF;
     --accent:#22D3EE;
-
-    --risk-low:#2ECC71;
-    --risk-med:#F1C40F;
-    --risk-high:#E74C3C;
 }
 
-/* ===== SIDEBAR ===== */
+/* ========= SIDEBAR ========= */
 section[data-testid="stSidebar"] {
     background-color:var(--bg-main);
     padding:18px 14px;
 }
+
 section[data-testid="stSidebar"] h3 {
     font-size:15px;
     font-weight:600;
@@ -83,23 +80,59 @@ section[data-testid="stSidebar"] h3 {
     border-bottom:1px solid var(--border);
     color:var(--text-main);
 }
+
 section[data-testid="stSidebar"] label {
     font-size:13px;
     color:var(--text-muted);
 }
+
+/* Sidebar cards */
 .sidebar-card {
     background:var(--bg-card);
     padding:14px;
     border-radius:12px;
     margin-bottom:16px;
     border:1px solid var(--border);
-    transition:border .2s ease;
-}
-.sidebar-card:hover {
-    border-color:var(--primary);
 }
 
-/* ===== KPI CARDS ===== */
+/* ========= MULTISELECT FIX ========= */
+
+/* Selected value tags */
+div[data-baseweb="tag"] {
+    background-color:#1F3A5F !important;
+    color:#E6E6E6 !important;
+    border-radius:6px;
+    font-size:12px;
+}
+
+/* Tag text */
+div[data-baseweb="tag"] span {
+    color:#E6E6E6 !important;
+}
+
+/* Select input background */
+div[data-baseweb="select"] {
+    background-color:#141922;
+    border-radius:10px;
+}
+
+/* Placeholder text */
+div[data-baseweb="select"] span {
+    color:#9CA3AF;
+}
+
+/* Dropdown */
+ul[role="listbox"] {
+    background-color:#161B22;
+    color:#E6E6E6;
+}
+
+/* Hover option */
+li[role="option"]:hover {
+    background-color:#1F3A5F;
+}
+
+/* ========= KPI CARDS ========= */
 .kpi-card {
     background:linear-gradient(180deg,#161B22,#141922);
     border:1px solid var(--border);
@@ -107,12 +140,8 @@ section[data-testid="stSidebar"] label {
     padding:22px 18px;
     text-align:center;
     position:relative;
-    transition:.15s ease;
 }
-.kpi-card:hover {
-    transform:translateY(-2px);
-    box-shadow:0 6px 20px rgba(0,0,0,.35);
-}
+
 .kpi-card::before {
     content:"";
     position:absolute;
@@ -121,17 +150,19 @@ section[data-testid="stSidebar"] label {
     background:linear-gradient(90deg,var(--primary),var(--accent));
     border-radius:16px 16px 0 0;
 }
+
 .kpi-title {
     color:var(--text-muted);
     font-size:13px;
 }
+
 .kpi-value {
     color:var(--text-main);
     font-size:28px;
     font-weight:700;
 }
 
-/* ===== CHART CARDS ===== */
+/* ========= CHART CARDS ========= */
 .chart-card {
     background:linear-gradient(180deg,#161B22,#141922);
     padding:20px;
@@ -140,21 +171,11 @@ section[data-testid="stSidebar"] label {
     margin-bottom:30px;
 }
 
-/* ===== DATAFRAME ===== */
+/* ========= DATAFRAME ========= */
 div[data-testid="stDataFrame"] {
     border-radius:14px;
     overflow:hidden;
     border:1px solid var(--border);
-}
-
-/* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width:8px; }
-::-webkit-scrollbar-thumb {
-    background:#2A2F3A;
-    border-radius:8px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background:#3A4150;
 }
 
 </style>
@@ -216,48 +237,78 @@ df["Shipping_Pressure_Index"] = (
 ).fillna(0)
 
 df["Is_Express_Shipping"] = df["Shipping Mode"].astype(str).str.contains("express", case=False).astype(int)
-
 df["Order_Complexity_Score"] = df["Order Item Quantity"] * (1 + df["Order Item Discount Rate"])
 
 region_risk = df.groupby("Order Region")[TARGET].mean()
 df["Region_Delay_Risk"] = df["Order Region"].map(region_risk).fillna(df[TARGET].mean())
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS
+# SIDEBAR FILTERS (FIXED)
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("🚚 Logistics")
-ship_filter = st.sidebar.multiselect("Shipping Mode", sorted(df["Shipping Mode"].dropna().unique()))
+ship_filter = st.sidebar.multiselect(
+    label="Shipping Mode",
+    options=sorted(df["Shipping Mode"].dropna().unique()),
+    placeholder="Select shipping modes",
+    label_visibility="collapsed"
+)
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("🌍 Geography")
-market_filter = st.sidebar.multiselect("Market", sorted(df["Market"].dropna().unique()))
-region_filter = st.sidebar.multiselect("Order Region", sorted(df["Order Region"].dropna().unique()))
+market_filter = st.sidebar.multiselect(
+    label="Market",
+    options=sorted(df["Market"].dropna().unique()),
+    placeholder="Select markets",
+    label_visibility="collapsed"
+)
+region_filter = st.sidebar.multiselect(
+    label="Order Region",
+    options=sorted(df["Order Region"].dropna().unique()),
+    placeholder="Select regions",
+    label_visibility="collapsed"
+)
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("👥 Customer")
-segment_filter = st.sidebar.multiselect("Customer Segment", sorted(df["Customer Segment"].dropna().unique()))
+segment_filter = st.sidebar.multiselect(
+    label="Customer Segment",
+    options=sorted(df["Customer Segment"].dropna().unique()),
+    placeholder="Select segments",
+    label_visibility="collapsed"
+)
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
-if ship_filter: df = df[df["Shipping Mode"].isin(ship_filter)]
-if market_filter: df = df[df["Market"].isin(market_filter)]
-if region_filter: df = df[df["Order Region"].isin(region_filter)]
-if segment_filter: df = df[df["Customer Segment"].isin(segment_filter)]
+if ship_filter:
+    df = df[df["Shipping Mode"].isin(ship_filter)]
+if market_filter:
+    df = df[df["Market"].isin(market_filter)]
+if region_filter:
+    df = df[df["Order Region"].isin(region_filter)]
+if segment_filter:
+    df = df[df["Customer Segment"].isin(segment_filter)]
 
 # ---------------------------------------------------------
 # MODEL DATA
 # ---------------------------------------------------------
 FEATURES = [
-    "Days for shipment (scheduled)","Order Item Quantity",
-    "Shipping_Pressure_Index","Region_Delay_Risk",
-    "Is_Express_Shipping","Order_Complexity_Score",
-    "Sales","Order Item Discount Rate",
-    "Order Profit Per Order","Benefit per order",
-    "Market","Order Region","Customer Segment"
+    "Days for shipment (scheduled)",
+    "Order Item Quantity",
+    "Shipping_Pressure_Index",
+    "Region_Delay_Risk",
+    "Is_Express_Shipping",
+    "Order_Complexity_Score",
+    "Sales",
+    "Order Item Discount Rate",
+    "Order Profit Per Order",
+    "Benefit per order",
+    "Market",
+    "Order Region",
+    "Customer Segment"
 ]
 
 X = df[FEATURES]
@@ -375,7 +426,9 @@ results["Risk_Category"] = pd.cut(results["Delay_Probability"], [0,0.4,threshold
 
 st.subheader("🚨 High-Risk Orders – Operations Action Queue")
 st.dataframe(
-    results[results["Risk_Category"]=="High"].sort_values("Delay_Probability",ascending=False).head(50),
+    results[results["Risk_Category"]=="High"]
+    .sort_values("Delay_Probability",ascending=False)
+    .head(50),
     use_container_width=True
 )
 
@@ -388,9 +441,11 @@ coef_df = pd.DataFrame({
 }).sort_values("Impact",ascending=False).head(15)
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
-                      "Key Drivers of Late Delivery Risk"),
-                use_container_width=True)
+st.plotly_chart(
+    style(px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+          "Key Drivers of Late Delivery Risk"),
+    use_container_width=True
+)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
