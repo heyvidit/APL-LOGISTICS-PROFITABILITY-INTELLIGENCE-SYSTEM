@@ -52,16 +52,13 @@ TICK_SIZE = 11
 # ---------------------------------------------------------
 st.markdown("""
 <style>
-
 section[data-testid="stSidebar"] {
     background-color: #0E1117;
     padding: 18px 14px;
 }
-
 section[data-testid="stSidebar"] input[type="search"] {
     display: none !important;
 }
-
 .sidebar-card {
     background-color: #161B22;
     padding: 14px;
@@ -69,7 +66,6 @@ section[data-testid="stSidebar"] input[type="search"] {
     margin-bottom: 16px;
     border: 1px solid #232A33;
 }
-
 .kpi-card {
     background: #161B22;
     border: 1px solid #232A33;
@@ -77,18 +73,15 @@ section[data-testid="stSidebar"] input[type="search"] {
     padding: 20px;
     text-align: center;
 }
-
 .kpi-title {
     color: #B0B3B8;
     font-size: 14px;
 }
-
 .kpi-value {
     color: #EAEAEA;
     font-size: 28px;
     font-weight: 700;
 }
-
 .chart-card {
     background:#161B22;
     padding:18px;
@@ -96,7 +89,6 @@ section[data-testid="stSidebar"] input[type="search"] {
     border:1px solid #232A33;
     margin-bottom:30px;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -139,30 +131,12 @@ df = load_data()
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
-ship_filter = st.sidebar.multiselect(
-    "Shipping Mode",
-    sorted(df["Shipping Mode"].dropna().unique())
-)
+ship_filter = st.sidebar.multiselect("Shipping Mode", sorted(df["Shipping Mode"].dropna().unique()))
+market_filter = st.sidebar.multiselect("Market", sorted(df["Market"].dropna().unique()))
+region_filter = st.sidebar.multiselect("Order Region", sorted(df["Order Region"].dropna().unique()))
+segment_filter = st.sidebar.multiselect("Customer Segment", sorted(df["Customer Segment"].dropna().unique()))
 
-market_filter = st.sidebar.multiselect(
-    "Market",
-    sorted(df["Market"].dropna().unique())
-)
-
-region_filter = st.sidebar.multiselect(
-    "Order Region",
-    sorted(df["Order Region"].dropna().unique())
-)
-
-segment_filter = st.sidebar.multiselect(
-    "Customer Segment",
-    sorted(df["Customer Segment"].dropna().unique())
-)
-
-threshold = st.sidebar.slider(
-    "🚨 High-Risk Probability Threshold",
-    0.30, 0.90, 0.70, 0.05
-)
+threshold = st.sidebar.slider("🚨 High-Risk Probability Threshold", 0.30, 0.90, 0.70, 0.05)
 
 if ship_filter:
     df = df[df["Shipping Mode"].isin(ship_filter)]
@@ -174,22 +148,8 @@ if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
 
 # ---------------------------------------------------------
-# VALIDATION (NO STOP)
+# DATA CLEANING
 # ---------------------------------------------------------
-validation_error = None
-
-if len(df) < 10:
-    validation_error = "Not enough data after filtering. Please relax filters."
-elif df[TARGET].nunique() < 2:
-    validation_error = "Filtered data contains only one class. Adjust filters."
-
-if validation_error:
-    st.error(validation_error)
-
-# ---------------------------------------------------------
-# CONTINUE WITH ORIGINAL PIPELINE
-# ---------------------------------------------------------
-
 LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
 HIGH_CARDINALITY = [
     "Customer City","Customer State","Order City","Order State",
@@ -201,6 +161,9 @@ HIGH_CARDINALITY = [
 
 df.drop(columns=[c for c in LEAKAGE_COLS + HIGH_CARDINALITY if c in df.columns], inplace=True)
 
+# ---------------------------------------------------------
+# FEATURE ENGINEERING
+# ---------------------------------------------------------
 df["Shipping_Pressure_Index"] = (
     df["Order Item Quantity"] /
     df["Days for shipment (scheduled)"].replace(0, np.nan)
@@ -224,6 +187,9 @@ df["Region_Delay_Risk"] = (
     .fillna(df[TARGET].mean())
 )
 
+# ---------------------------------------------------------
+# MODEL
+# ---------------------------------------------------------
 FEATURES = [
     "Days for shipment (scheduled)",
     "Order Item Quantity",
@@ -247,15 +213,24 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, stratify=y, test_size=0.25, random_state=42
 )
 
-X_train_enc = pd.get_dummies(X_train, drop_first=True)
-X_test_enc = X_test.reindex(columns=X_train_enc.columns, fill_value=0)
+@st.cache_data
+def encode(train, test):
+    train_enc = pd.get_dummies(train, drop_first=True)
+    test_enc = test.reindex(columns=train_enc.columns, fill_value=0)
+    return train_enc, test_enc
 
-model = Pipeline([
-    ("scaler", StandardScaler()),
-    ("lr", LogisticRegression(max_iter=1000, class_weight="balanced"))
-])
+X_train_enc, X_test_enc = encode(X_train, X_test)
 
-model.fit(X_train_enc, y_train)
+@st.cache_resource
+def train_model(X, y):
+    model = Pipeline([
+        ("scaler", StandardScaler()),
+        ("lr", LogisticRegression(max_iter=1000, class_weight="balanced"))
+    ])
+    model.fit(X, y)
+    return model
+
+model = train_model(X_train_enc, y_train)
 y_proba = model.predict_proba(X_test_enc)[:, 1]
 
 roc = roc_auc_score(y_test, y_proba)
@@ -301,6 +276,21 @@ st.plotly_chart(fig_cm, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
+# STYLE HELPER
+# ---------------------------------------------------------
+def style(fig, title):
+    fig.update_layout(
+        title=title,
+        font=PLOTLY_FONT,
+        title_font_size=TITLE_SIZE,
+        xaxis_title_font_size=AXIS_LABEL_SIZE,
+        yaxis_title_font_size=AXIS_LABEL_SIZE
+    )
+    fig.update_xaxes(tickfont_size=TICK_SIZE)
+    fig.update_yaxes(tickfont_size=TICK_SIZE)
+    return fig
+
+# ---------------------------------------------------------
 # VISUALS
 # ---------------------------------------------------------
 for fig, title in [
@@ -312,11 +302,48 @@ for fig, title in [
      "Average Delay Risk by Shipping Mode")
 ]:
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(style(fig, title), use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (EXACTLY AS YOU GAVE)
+# HIGH-RISK ACTION QUEUE
+# ---------------------------------------------------------
+results = X_test.copy()
+results["Delay_Probability"] = y_proba
+results["Risk_Category"] = pd.cut(
+    results["Delay_Probability"],
+    [0, 0.4, threshold, 1],
+    labels=["Low", "Medium", "High"]
+)
+
+st.subheader("🚨 High-Risk Orders – Operations Action Queue")
+st.dataframe(
+    results[results["Risk_Category"] == "High"]
+    .sort_values("Delay_Probability", ascending=False)
+    .head(50),
+    use_container_width=True
+)
+
+# ---------------------------------------------------------
+# EXPLAINABILITY
+# ---------------------------------------------------------
+coef_df = pd.DataFrame({
+    "Feature": X_train_enc.columns,
+    "Impact": np.abs(model.named_steps["lr"].coef_[0])
+}).sort_values("Impact", ascending=False).head(15)
+
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(
+    style(
+        px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+        "Key Drivers of Late Delivery Risk"
+    ),
+    use_container_width=True
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# FOOTER (FONT FIXED ONLY)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
@@ -326,7 +353,7 @@ def render_footer():
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;
                 padding:25px 40px;background:#0E1117;color:white;
-                font-size:16px;font-family:Arial;">
+                font-size:13px;font-family:'Segoe UI',sans-serif;">
         <div style="display:flex;gap:12px;align-items:center;">
             <img src="data:image/png;base64,{encoded}" style="height:50px;">
             <span>Mentored by 
