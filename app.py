@@ -48,10 +48,12 @@ AXIS_LABEL_SIZE = 14
 TICK_SIZE = 12
 
 # ---------------------------------------------------------
-# SIDEBAR DESIGN
+# GLOBAL STYLES (Sidebar + Cards + Footer Typography)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
+
+/* Sidebar */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg,#0B0F14 0%, #0E141B 100%);
     border-right: 1px solid #1F2933;
@@ -60,6 +62,8 @@ section[data-testid="stSidebar"] {
 section[data-testid="stSidebar"] input[type="search"] {
     display: none !important;
 }
+
+/* Sidebar Brand */
 .sidebar-brand {
     background: linear-gradient(135deg,#0A66C2,#004182);
     padding: 22px;
@@ -79,6 +83,8 @@ section[data-testid="stSidebar"] input[type="search"] {
     font-size: 12px;
     margin-top: 6px;
 }
+
+/* Sidebar Sections */
 .sidebar-section-title {
     font-size: 12px;
     color: #9BA3AF;
@@ -98,10 +104,8 @@ section[data-testid="stSidebar"] input[type="search"] {
     border: 1px solid #1F2933;
     margin-bottom: 20px;
 }
-section[data-testid="stSidebar"] label {
-    font-size: 13px;
-    color: #C9D1D9;
-}
+
+/* KPI Cards */
 .kpi-card {
     background: #11161D;
     padding: 20px;
@@ -115,9 +119,11 @@ section[data-testid="stSidebar"] label {
 }
 .kpi-value {
     color: #FFFFFF;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 700;
 }
+
+/* Chart Cards */
 .chart-card {
     background: #11161D;
     padding: 24px;
@@ -125,6 +131,25 @@ section[data-testid="stSidebar"] label {
     border: 1px solid #1F2933;
     margin-bottom: 30px;
 }
+
+/* Footer */
+.footer-container {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:18px 40px;
+    background:#0B1220;
+    color:#9CA3AF;
+    font-size:13px;
+    border-top:1px solid #1F2933;
+    margin-top:50px;
+}
+
+.footer-container a {
+    color:#3B82F6;
+    text-decoration:none;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -135,7 +160,9 @@ def render_header():
     if not APL_LOGO_PATH.exists():
         st.warning("APL logo not found")
         return
+
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
+
     st.markdown(f"""
     <div style="background:linear-gradient(90deg,#0A66C2,#004182);
                 padding:55px 20px 45px;
@@ -361,7 +388,7 @@ st.plotly_chart(
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# REGION & SHIPPING VISUALS
+# REGION & SHIPPING
 # ---------------------------------------------------------
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
@@ -380,7 +407,7 @@ st.plotly_chart(
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HIGH RISK QUEUE
+# HIGH-RISK QUEUE
 # ---------------------------------------------------------
 results = X_test.copy()
 results["Delay_Probability"] = y_proba
@@ -414,7 +441,7 @@ st.plotly_chart(
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (REFINED TYPOGRAPHY)
+# FOOTER (Refined)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
@@ -423,44 +450,25 @@ def render_footer():
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
 
     st.markdown(f"""
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        padding:18px 40px;
-        background:#0B1220;
-        color:#9CA3AF;
-        font-size:13px;
-        font-family:'Inter', sans-serif;
-        border-top:1px solid #1F2933;
-        margin-top:50px;
-    ">
-
+    <div class="footer-container">
         <div style="display:flex;gap:10px;align-items:center;">
             <img src="data:image/png;base64,{encoded}" style="height:36px;">
             <span>
                 Mentored by 
-                <a href="https://www.linkedin.com/in/saiprasad-kagne/"
-                   target="_blank"
-                   style="color:#3B82F6;text-decoration:none;">
-                   Sai Prasad Kagne
-                </a>
+                <a href="https://www.linkedin.com/in/saiprasad-kagne/" target="_blank">
+                Sai Prasad Kagne</a>
             </span>
         </div>
 
         <span>
             Created by 
-            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
-               target="_blank"
-               style="color:#3B82F6;text-decoration:none;">
-               Vidit Kapoor
-            </a>
+            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6" target="_blank">
+            Vidit Kapoor</a>
         </span>
 
         <span style="opacity:0.7;">
             Version 1.0 | Feb 2026
         </span>
-
     </div>
     """, unsafe_allow_html=True)
 
