@@ -43,59 +43,36 @@ UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
 PLOTLY_FONT = dict(family="Arial", size=12, color="#EAEAEA")
-TITLE_SIZE = 20
-AXIS_LABEL_SIZE = 14
-TICK_SIZE = 12
+TITLE_SIZE = 18
+AXIS_LABEL_SIZE = 13
+TICK_SIZE = 11
 
 # ---------------------------------------------------------
-# GLOBAL STYLES (Sidebar + Cards + Footer Typography)
+# SIDEBAR VISUAL REDESIGN (ONLY VISUALS CHANGED)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
-
-/* Sidebar */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg,#0B0F14 0%, #0E141B 100%);
     border-right: 1px solid #1F2933;
-    padding: 28px 18px;
+    padding: 25px 18px;
 }
 section[data-testid="stSidebar"] input[type="search"] {
     display: none !important;
 }
-
-/* Sidebar Brand */
 .sidebar-brand {
     background: linear-gradient(135deg,#0A66C2,#004182);
     padding: 22px;
     border-radius: 18px;
     text-align: center;
     margin-bottom: 28px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
 }
-.sidebar-brand h2 {
-    color: white;
-    font-size: 18px;
-    margin: 0;
-    font-weight: 700;
-}
-.sidebar-brand p {
-    color: #DCE6F2;
-    font-size: 12px;
-    margin-top: 6px;
-}
-
-/* Sidebar Sections */
 .sidebar-section-title {
     font-size: 12px;
     color: #9BA3AF;
     text-transform: uppercase;
     letter-spacing: 1px;
     margin: 18px 0 12px;
-}
-.sidebar-divider {
-    height: 1px;
-    background: #1F2933;
-    margin: 20px 0;
 }
 .sidebar-card {
     background: #11161D;
@@ -104,52 +81,29 @@ section[data-testid="stSidebar"] input[type="search"] {
     border: 1px solid #1F2933;
     margin-bottom: 20px;
 }
-
-/* KPI Cards */
 .kpi-card {
-    background: #11161D;
+    background: #161B22;
+    border: 1px solid #232A33;
+    border-radius: 14px;
     padding: 20px;
-    border-radius: 16px;
-    border: 1px solid #1F2933;
     text-align: center;
 }
 .kpi-title {
-    color: #9BA3AF;
+    color: #B0B3B8;
     font-size: 14px;
 }
 .kpi-value {
-    color: #FFFFFF;
+    color: #EAEAEA;
     font-size: 28px;
     font-weight: 700;
 }
-
-/* Chart Cards */
 .chart-card {
-    background: #11161D;
-    padding: 24px;
-    border-radius: 18px;
-    border: 1px solid #1F2933;
-    margin-bottom: 30px;
+    background:#161B22;
+    padding:18px;
+    border-radius:14px;
+    border:1px solid #232A33;
+    margin-bottom:30px;
 }
-
-/* Footer */
-.footer-container {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:18px 40px;
-    background:#0B1220;
-    color:#9CA3AF;
-    font-size:13px;
-    border-top:1px solid #1F2933;
-    margin-top:50px;
-}
-
-.footer-container a {
-    color:#3B82F6;
-    text-decoration:none;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -162,19 +116,14 @@ def render_header():
         return
 
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
-
     st.markdown(f"""
-    <div style="background:linear-gradient(90deg,#0A66C2,#004182);
-                padding:55px 20px 45px;
-                border-radius:20px;
-                text-align:center;
-                margin-bottom:35px;">
+    <div style="background:#0E1117;padding:45px 20px 35px;text-align:center;">
         <img src="data:image/png;base64,{encoded}"
-             style="width:14rem;margin-bottom:20px;">
-        <h1 style="color:white;font-size:42px;margin:0;font-weight:800;">
+             style="width:15rem;margin-bottom:20px;">
+        <h1 style="color:white;font-size:39px;margin:0;font-weight:700;">
             Predictive Late Delivery Risk Intelligence
         </h1>
-        <p style="color:#E3EAF2;font-size:18px;margin-top:12px;">
+        <p style="color:#B0B3B8;font-size:18px;margin-top:8px;">
             APL Logistics | Proactive Supply Chain Risk Analytics
         </p>
     </div>
@@ -193,12 +142,12 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# SIDEBAR
+# SIDEBAR STRUCTURE (LOGIC UNCHANGED)
 # ---------------------------------------------------------
 st.sidebar.markdown("""
 <div class="sidebar-brand">
     <h2>APL Risk Engine</h2>
-    <p>Predictive Intelligence Panel</p>
+    <p style="color:#DCE6F2;font-size:12px;">Predictive Intelligence Panel</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -209,7 +158,6 @@ threshold = st.sidebar.slider(
     0.30, 0.90, 0.70, 0.05
 )
 
-st.sidebar.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 st.sidebar.markdown('<div class="sidebar-section-title">Filters</div>', unsafe_allow_html=True)
 
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
@@ -238,7 +186,7 @@ if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
 
 # ---------------------------------------------------------
-# VALIDATION BEFORE MODEL
+# SAFETY VALIDATION (ADDED)
 # ---------------------------------------------------------
 if len(df) < 10:
     st.error("Not enough data after filtering. Please relax filters.")
@@ -249,7 +197,7 @@ if df[TARGET].nunique() < 2:
     st.stop()
 
 # ---------------------------------------------------------
-# DATA CLEANING
+# DATA CLEANING (ORIGINAL)
 # ---------------------------------------------------------
 LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
 HIGH_CARDINALITY = [
@@ -263,7 +211,7 @@ HIGH_CARDINALITY = [
 df.drop(columns=[c for c in LEAKAGE_COLS + HIGH_CARDINALITY if c in df.columns], inplace=True)
 
 # ---------------------------------------------------------
-# FEATURE ENGINEERING
+# FEATURE ENGINEERING (ORIGINAL)
 # ---------------------------------------------------------
 df["Shipping_Pressure_Index"] = (
     df["Order Item Quantity"] /
@@ -289,7 +237,7 @@ df["Region_Delay_Risk"] = (
 )
 
 # ---------------------------------------------------------
-# MODEL
+# MODEL DATA (ORIGINAL)
 # ---------------------------------------------------------
 FEATURES = [
     "Days for shipment (scheduled)",
@@ -340,7 +288,7 @@ rec = recall_score(y_test, y_proba >= threshold)
 f1 = f1_score(y_test, y_proba >= threshold)
 
 # ---------------------------------------------------------
-# KPI SECTION
+# KPI SECTION (ORIGINAL)
 # ---------------------------------------------------------
 st.subheader("📊 Executive Risk Overview")
 c1, c2, c3, c4, c5 = st.columns(5)
@@ -360,7 +308,7 @@ kpi(c4, "Recall", round(rec, 3))
 kpi(c5, "F1 Score", round(f1, 3))
 
 # ---------------------------------------------------------
-# CONFUSION MATRIX
+# CONFUSION MATRIX (ORIGINAL)
 # ---------------------------------------------------------
 st.subheader("🧮 Model Error Analysis – Confusion Matrix")
 
@@ -371,43 +319,43 @@ cm_df = pd.DataFrame(
     columns=["Predicted On-Time", "Predicted Late"]
 )
 
+fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(px.imshow(cm_df, text_auto=True), use_container_width=True)
+st.plotly_chart(fig_cm, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# DISTRIBUTION
+# CHART STYLING HELPER (ORIGINAL)
 # ---------------------------------------------------------
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(
-    px.histogram(pd.DataFrame({"Delay Probability": y_proba}),
-                 x="Delay Probability",
-                 nbins=30),
-    use_container_width=True
-)
-st.markdown('</div>', unsafe_allow_html=True)
+def style(fig, title):
+    fig.update_layout(
+        title=title,
+        font=PLOTLY_FONT,
+        title_font_size=TITLE_SIZE,
+        xaxis_title_font_size=AXIS_LABEL_SIZE,
+        yaxis_title_font_size=AXIS_LABEL_SIZE
+    )
+    fig.update_xaxes(tickfont_size=TICK_SIZE)
+    fig.update_yaxes(tickfont_size=TICK_SIZE)
+    return fig
 
 # ---------------------------------------------------------
-# REGION & SHIPPING
+# VISUALS (ORIGINAL)
 # ---------------------------------------------------------
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(
-    px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(),
-           x="Order Region", y=TARGET),
-    use_container_width=True
-)
-st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(
-    px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
-           x="Shipping Mode", y=TARGET),
-    use_container_width=True
-)
-st.markdown('</div>', unsafe_allow_html=True)
+for fig, title in [
+    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}), x="Delay Probability", nbins=30),
+     "Late Delivery Risk Distribution"),
+    (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(), x="Order Region", y=TARGET),
+     "Average Delay Risk by Region"),
+    (px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(), x="Shipping Mode", y=TARGET),
+     "Average Delay Risk by Shipping Mode")
+]:
+    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+    st.plotly_chart(style(fig, title), use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HIGH-RISK QUEUE
+# HIGH-RISK ACTION QUEUE (ORIGINAL)
 # ---------------------------------------------------------
 results = X_test.copy()
 results["Delay_Probability"] = y_proba
@@ -426,7 +374,7 @@ st.dataframe(
 )
 
 # ---------------------------------------------------------
-# EXPLAINABILITY
+# EXPLAINABILITY (ORIGINAL)
 # ---------------------------------------------------------
 coef_df = pd.DataFrame({
     "Feature": X_train_enc.columns,
@@ -435,13 +383,16 @@ coef_df = pd.DataFrame({
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
-    px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+    style(
+        px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+        "Key Drivers of Late Delivery Risk"
+    ),
     use_container_width=True
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (Fixed Rendering + Refined Typography)
+# FOOTER (FIXED + SMALLER FONT)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
@@ -449,47 +400,41 @@ def render_footer():
 
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
 
-    footer_html = f"""
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        padding:16px 40px;
-        background:#0B1220;
-        border-top:1px solid #1F2933;
-        margin-top:60px;
-        font-size:13px;
-        color:#9CA3AF;
-    ">
+    st.markdown(f"""
+<div style="display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:16px 40px;
+            background:#0B1220;
+            border-top:1px solid #1F2933;
+            margin-top:60px;
+            font-size:13px;
+            color:#9CA3AF;">
 
-        <div style="display:flex;gap:10px;align-items:center;">
-            <img src="data:image/png;base64,{encoded}" style="height:34px;">
-            <span>
-                Mentored by 
-                <a href="https://www.linkedin.com/in/saiprasad-kagne/"
-                   target="_blank"
-                   style="color:#3B82F6;text-decoration:none;">
-                   Sai Prasad Kagne
-                </a>
-            </span>
-        </div>
-
+    <div style="display:flex;gap:10px;align-items:center;">
+        <img src="data:image/png;base64,{encoded}" style="height:34px;">
         <span>
-            Created by 
-            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
-               target="_blank"
+            Mentored by 
+            <a href="https://www.linkedin.com/in/saiprasad-kagne/" target="_blank"
                style="color:#3B82F6;text-decoration:none;">
-               Vidit Kapoor
+               Sai Prasad Kagne
             </a>
         </span>
-
-        <span style="opacity:0.7;">
-            Version 1.0 | Feb 2026
-        </span>
-
     </div>
-    """
 
-    st.markdown(footer_html, unsafe_allow_html=True)
+    <span>
+        Created by 
+        <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6" target="_blank"
+           style="color:#3B82F6;text-decoration:none;">
+           Vidit Kapoor
+        </a>
+    </span>
+
+    <span style="opacity:0.7;">
+        Version 1.0 | Feb 2026
+    </span>
+
+</div>
+""", unsafe_allow_html=True)
 
 render_footer()
