@@ -290,7 +290,7 @@ fig_cm = px.imshow(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_cm), use_container_width=True)
+st.plotly_chart(style(fig_cm, "Model Error Analysis – Confusion Matrix"), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
@@ -306,7 +306,7 @@ fig_hist = px.histogram(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_hist), use_container_width=True)
+st.plotly_chart(style(fig_hist, "Late Delivery Risk Distribution"), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
@@ -322,7 +322,7 @@ fig_region = px.bar(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_region), use_container_width=True)
+st.plotly_chart(style(fig_region, "Average Delay Risk by Region"), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.subheader("🚚 Average Delay Risk by Shipping Mode")
@@ -335,7 +335,7 @@ fig_mode = px.bar(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_mode), use_container_width=True)
+st.plotly_chart(style(fig_mode, "Average Delay Risk by Shipping Mode"), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
