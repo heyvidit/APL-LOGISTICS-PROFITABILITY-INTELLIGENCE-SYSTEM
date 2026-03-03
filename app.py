@@ -48,7 +48,7 @@ AXIS_LABEL_SIZE = 13
 TICK_SIZE = 11
 
 # ---------------------------------------------------------
-# SIDEBAR VISUAL REDESIGN (ONLY VISUALS CHANGED)
+# SIDEBAR STYLES
 # ---------------------------------------------------------
 st.markdown("""
 <style>
@@ -142,7 +142,7 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# SIDEBAR STRUCTURE (LOGIC UNCHANGED)
+# SIDEBAR
 # ---------------------------------------------------------
 st.sidebar.markdown("""
 <div class="sidebar-brand">
@@ -160,21 +160,10 @@ threshold = st.sidebar.slider(
 
 st.sidebar.markdown('<div class="sidebar-section-title">Filters</div>', unsafe_allow_html=True)
 
-st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
-st.sidebar.subheader("🚚 Logistics")
 ship_filter = st.sidebar.multiselect("Shipping Mode", sorted(df["Shipping Mode"].dropna().unique()))
-st.sidebar.markdown('</div>', unsafe_allow_html=True)
-
-st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
-st.sidebar.subheader("🌍 Geography")
 market_filter = st.sidebar.multiselect("Market", sorted(df["Market"].dropna().unique()))
 region_filter = st.sidebar.multiselect("Order Region", sorted(df["Order Region"].dropna().unique()))
-st.sidebar.markdown('</div>', unsafe_allow_html=True)
-
-st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
-st.sidebar.subheader("👥 Customer")
 segment_filter = st.sidebar.multiselect("Customer Segment", sorted(df["Customer Segment"].dropna().unique()))
-st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 if ship_filter:
     df = df[df["Shipping Mode"].isin(ship_filter)]
@@ -186,213 +175,115 @@ if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
 
 # ---------------------------------------------------------
-# SAFETY VALIDATION (ADDED)
+# VALIDATION (NO STOP)
 # ---------------------------------------------------------
+valid_data = True
+
 if len(df) < 10:
     st.error("Not enough data after filtering. Please relax filters.")
-    st.stop()
+    valid_data = False
 
-if df[TARGET].nunique() < 2:
+elif df[TARGET].nunique() < 2:
     st.error("Filtered data contains only one class. Adjust filters.")
-    st.stop()
+    valid_data = False
 
 # ---------------------------------------------------------
-# DATA CLEANING (ORIGINAL)
+# MODEL + VISUALS (ONLY IF VALID)
 # ---------------------------------------------------------
-LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
-HIGH_CARDINALITY = [
-    "Customer City","Customer State","Order City","Order State",
-    "Customer Country","Order Country",
-    "Customer Id","Order Customer Id",
-    "Customer Fname","Customer Lname",
-    "Customer Street","Customer Zipcode","Product Name"
-]
+if valid_data:
 
-df.drop(columns=[c for c in LEAKAGE_COLS + HIGH_CARDINALITY if c in df.columns], inplace=True)
+    LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
+    HIGH_CARDINALITY = [
+        "Customer City","Customer State","Order City","Order State",
+        "Customer Country","Order Country",
+        "Customer Id","Order Customer Id",
+        "Customer Fname","Customer Lname",
+        "Customer Street","Customer Zipcode","Product Name"
+    ]
 
-# ---------------------------------------------------------
-# FEATURE ENGINEERING (ORIGINAL)
-# ---------------------------------------------------------
-df["Shipping_Pressure_Index"] = (
-    df["Order Item Quantity"] /
-    df["Days for shipment (scheduled)"].replace(0, np.nan)
-).fillna(0)
+    df.drop(columns=[c for c in LEAKAGE_COLS + HIGH_CARDINALITY if c in df.columns], inplace=True)
 
-df["Is_Express_Shipping"] = (
-    df["Shipping Mode"].astype(str)
-    .str.contains("express", case=False)
-    .astype(int)
-)
+    df["Shipping_Pressure_Index"] = (
+        df["Order Item Quantity"] /
+        df["Days for shipment (scheduled)"].replace(0, np.nan)
+    ).fillna(0)
 
-df["Order_Complexity_Score"] = (
-    df["Order Item Quantity"] *
-    (1 + df["Order Item Discount Rate"])
-)
+    df["Is_Express_Shipping"] = (
+        df["Shipping Mode"].astype(str)
+        .str.contains("express", case=False)
+        .astype(int)
+    )
 
-region_risk = df.groupby("Order Region")[TARGET].mean()
-df["Region_Delay_Risk"] = (
-    df["Order Region"]
-    .map(region_risk)
-    .fillna(df[TARGET].mean())
-)
+    df["Order_Complexity_Score"] = (
+        df["Order Item Quantity"] *
+        (1 + df["Order Item Discount Rate"])
+    )
 
-# ---------------------------------------------------------
-# MODEL DATA (ORIGINAL)
-# ---------------------------------------------------------
-FEATURES = [
-    "Days for shipment (scheduled)",
-    "Order Item Quantity",
-    "Shipping_Pressure_Index",
-    "Region_Delay_Risk",
-    "Is_Express_Shipping",
-    "Order_Complexity_Score",
-    "Sales",
-    "Order Item Discount Rate",
-    "Order Profit Per Order",
-    "Benefit per order",
-    "Market",
-    "Order Region",
-    "Customer Segment"
-]
+    region_risk = df.groupby("Order Region")[TARGET].mean()
+    df["Region_Delay_Risk"] = (
+        df["Order Region"]
+        .map(region_risk)
+        .fillna(df[TARGET].mean())
+    )
 
-X = df[FEATURES]
-y = df[TARGET]
+    FEATURES = [
+        "Days for shipment (scheduled)",
+        "Order Item Quantity",
+        "Shipping_Pressure_Index",
+        "Region_Delay_Risk",
+        "Is_Express_Shipping",
+        "Order_Complexity_Score",
+        "Sales",
+        "Order Item Discount Rate",
+        "Order Profit Per Order",
+        "Benefit per order",
+        "Market",
+        "Order Region",
+        "Customer Segment"
+    ]
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, stratify=y, test_size=0.25, random_state=42
-)
+    X = df[FEATURES]
+    y = df[TARGET]
 
-@st.cache_data
-def encode(train, test):
-    train_enc = pd.get_dummies(train, drop_first=True)
-    test_enc = test.reindex(columns=train_enc.columns, fill_value=0)
-    return train_enc, test_enc
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, stratify=y, test_size=0.25, random_state=42
+    )
 
-X_train_enc, X_test_enc = encode(X_train, X_test)
+    X_train_enc = pd.get_dummies(X_train, drop_first=True)
+    X_test_enc = X_test.reindex(columns=X_train_enc.columns, fill_value=0)
 
-@st.cache_resource
-def train_model(X, y):
     model = Pipeline([
         ("scaler", StandardScaler()),
         ("lr", LogisticRegression(max_iter=1000, class_weight="balanced"))
     ])
-    model.fit(X, y)
-    return model
 
-model = train_model(X_train_enc, y_train)
-y_proba = model.predict_proba(X_test_enc)[:, 1]
+    model.fit(X_train_enc, y_train)
+    y_proba = model.predict_proba(X_test_enc)[:, 1]
 
-roc = roc_auc_score(y_test, y_proba)
-prec = precision_score(y_test, y_proba >= threshold)
-rec = recall_score(y_test, y_proba >= threshold)
-f1 = f1_score(y_test, y_proba >= threshold)
+    roc = roc_auc_score(y_test, y_proba)
+    prec = precision_score(y_test, y_proba >= threshold)
+    rec = recall_score(y_test, y_proba >= threshold)
+    f1 = f1_score(y_test, y_proba >= threshold)
 
-# ---------------------------------------------------------
-# KPI SECTION (ORIGINAL)
-# ---------------------------------------------------------
-st.subheader("📊 Executive Risk Overview")
-c1, c2, c3, c4, c5 = st.columns(5)
+    st.subheader("📊 Executive Risk Overview")
+    c1, c2, c3, c4, c5 = st.columns(5)
 
-def kpi(col, title, value):
-    col.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title">{title}</div>
-        <div class="kpi-value">{value}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    def kpi(col, title, value):
+        col.markdown(f"""
+        <div class="kpi-card">
+            <div class="kpi-title">{title}</div>
+            <div class="kpi-value">{value}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-kpi(c1, "Orders Analysed", f"{len(df):,}")
-kpi(c2, "ROC-AUC", round(roc, 3))
-kpi(c3, "Precision", round(prec, 3))
-kpi(c4, "Recall", round(rec, 3))
-kpi(c5, "F1 Score", round(f1, 3))
+    kpi(c1, "Orders Analysed", f"{len(df):,}")
+    kpi(c2, "ROC-AUC", round(roc, 3))
+    kpi(c3, "Precision", round(prec, 3))
+    kpi(c4, "Recall", round(rec, 3))
+    kpi(c5, "F1 Score", round(f1, 3))
 
 # ---------------------------------------------------------
-# CONFUSION MATRIX (ORIGINAL)
-# ---------------------------------------------------------
-st.subheader("🧮 Model Error Analysis – Confusion Matrix")
-
-cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
-cm_df = pd.DataFrame(
-    cm,
-    index=["Actual On-Time", "Actual Late"],
-    columns=["Predicted On-Time", "Predicted Late"]
-)
-
-fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(fig_cm, use_container_width=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# CHART STYLING HELPER (ORIGINAL)
-# ---------------------------------------------------------
-def style(fig, title):
-    fig.update_layout(
-        title=title,
-        font=PLOTLY_FONT,
-        title_font_size=TITLE_SIZE,
-        xaxis_title_font_size=AXIS_LABEL_SIZE,
-        yaxis_title_font_size=AXIS_LABEL_SIZE
-    )
-    fig.update_xaxes(tickfont_size=TICK_SIZE)
-    fig.update_yaxes(tickfont_size=TICK_SIZE)
-    return fig
-
-# ---------------------------------------------------------
-# VISUALS (ORIGINAL)
-# ---------------------------------------------------------
-for fig, title in [
-    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}), x="Delay Probability", nbins=30),
-     "Late Delivery Risk Distribution"),
-    (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(), x="Order Region", y=TARGET),
-     "Average Delay Risk by Region"),
-    (px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(), x="Shipping Mode", y=TARGET),
-     "Average Delay Risk by Shipping Mode")
-]:
-    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.plotly_chart(style(fig, title), use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# HIGH-RISK ACTION QUEUE (ORIGINAL)
-# ---------------------------------------------------------
-results = X_test.copy()
-results["Delay_Probability"] = y_proba
-results["Risk_Category"] = pd.cut(
-    results["Delay_Probability"],
-    [0, 0.4, threshold, 1],
-    labels=["Low", "Medium", "High"]
-)
-
-st.subheader("🚨 High-Risk Orders – Operations Action Queue")
-st.dataframe(
-    results[results["Risk_Category"] == "High"]
-    .sort_values("Delay_Probability", ascending=False)
-    .head(50),
-    use_container_width=True
-)
-
-# ---------------------------------------------------------
-# EXPLAINABILITY (ORIGINAL)
-# ---------------------------------------------------------
-coef_df = pd.DataFrame({
-    "Feature": X_train_enc.columns,
-    "Impact": np.abs(model.named_steps["lr"].coef_[0])
-}).sort_values("Impact", ascending=False).head(15)
-
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(
-    style(
-        px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
-        "Key Drivers of Late Delivery Risk"
-    ),
-    use_container_width=True
-)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# FOOTER (FIXED + SMALLER FONT)
+# FOOTER (ALWAYS RENDERS)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
