@@ -42,13 +42,20 @@ APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
-PLOTLY_FONT = dict(family="Arial", size=12, color="#EAEAEA")
-TITLE_SIZE = 18
-AXIS_LABEL_SIZE = 13
-TICK_SIZE = 11
+# ---------------------------------------------------------
+# EXECUTIVE CORPORATE COLOR SYSTEM
+# ---------------------------------------------------------
+PRIMARY_COLOR = "#1D4ED8"
+SECONDARY_COLOR = "#3B82F6"
+MUTED_BLUE = "#60A5FA"
+
+CHART_BG = "#161B22"
+PAPER_BG = "#161B22"
+GRID_COLOR = "#2F3542"
+TEXT_COLOR = "#E5E7EB"
 
 # ---------------------------------------------------------
-# GLOBAL UI STYLES
+# GLOBAL UI STYLES (UNCHANGED)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
@@ -93,7 +100,7 @@ section[data-testid="stSidebar"] input[type="search"] {
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HEADER
+# HEADER (UNCHANGED)
 # ---------------------------------------------------------
 def render_header():
     if not APL_LOGO_PATH.exists():
@@ -127,7 +134,7 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS
+# SIDEBAR FILTERS (UNCHANGED)
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -213,24 +220,15 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, stratify=y, test_size=0.25, random_state=42
 )
 
-@st.cache_data
-def encode(train, test):
-    train_enc = pd.get_dummies(train, drop_first=True)
-    test_enc = test.reindex(columns=train_enc.columns, fill_value=0)
-    return train_enc, test_enc
+X_train_enc = pd.get_dummies(X_train, drop_first=True)
+X_test_enc = X_test.reindex(columns=X_train_enc.columns, fill_value=0)
 
-X_train_enc, X_test_enc = encode(X_train, X_test)
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("lr", LogisticRegression(max_iter=1000, class_weight="balanced"))
+])
 
-@st.cache_resource
-def train_model(X, y):
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("lr", LogisticRegression(max_iter=1000, class_weight="balanced"))
-    ])
-    model.fit(X, y)
-    return model
-
-model = train_model(X_train_enc, y_train)
+model.fit(X_train_enc, y_train)
 y_proba = model.predict_proba(X_test_enc)[:, 1]
 
 roc = roc_auc_score(y_test, y_proba)
@@ -259,48 +257,63 @@ kpi(c4, "Recall", round(rec, 3))
 kpi(c5, "F1 Score", round(f1, 3))
 
 # ---------------------------------------------------------
+# CHART STYLE HELPER
+# ---------------------------------------------------------
+def style(fig, title):
+    fig.update_layout(
+        title=dict(text=title, font=dict(size=20, family="Segoe UI", color=TEXT_COLOR), x=0.01),
+        font=dict(family="Segoe UI", size=12, color=TEXT_COLOR),
+        plot_bgcolor=CHART_BG,
+        paper_bgcolor=PAPER_BG,
+        margin=dict(l=40, r=40, t=60, b=40)
+    )
+    fig.update_xaxes(showgrid=True, gridcolor=GRID_COLOR)
+    fig.update_yaxes(showgrid=True, gridcolor=GRID_COLOR)
+    return fig
+
+# ---------------------------------------------------------
 # CONFUSION MATRIX
 # ---------------------------------------------------------
 st.subheader("🧮 Model Error Analysis – Confusion Matrix")
 
 cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
-cm_df = pd.DataFrame(
-    cm,
-    index=["Actual On-Time", "Actual Late"],
-    columns=["Predicted On-Time", "Predicted Late"]
+cm_df = pd.DataFrame(cm,
+                     index=["Actual On-Time", "Actual Late"],
+                     columns=["Predicted On-Time", "Predicted Late"])
+
+fig_cm = px.imshow(
+    cm_df,
+    text_auto=True,
+    color_continuous_scale=["#1F2937", "#334155", "#475569", PRIMARY_COLOR]
 )
 
-fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(fig_cm, use_container_width=True)
+st.plotly_chart(style(fig_cm, "Model Error Analysis – Confusion Matrix"), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# STYLE HELPER
-# ---------------------------------------------------------
-def style(fig, title):
-    fig.update_layout(
-        title=title,
-        font=PLOTLY_FONT,
-        title_font_size=TITLE_SIZE,
-        xaxis_title_font_size=AXIS_LABEL_SIZE,
-        yaxis_title_font_size=AXIS_LABEL_SIZE
-    )
-    fig.update_xaxes(tickfont_size=TICK_SIZE)
-    fig.update_yaxes(tickfont_size=TICK_SIZE)
-    return fig
 
 # ---------------------------------------------------------
 # VISUALS
 # ---------------------------------------------------------
 for fig, title in [
-    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}), x="Delay Probability", nbins=30),
+    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}),
+                  x="Delay Probability",
+                  nbins=30,
+                  color_discrete_sequence=[PRIMARY_COLOR]),
      "Late Delivery Risk Distribution"),
-    (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(), x="Order Region", y=TARGET),
+
+    (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(),
+            x="Order Region",
+            y=TARGET,
+            color_discrete_sequence=[SECONDARY_COLOR]),
      "Average Delay Risk by Region"),
-    (px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(), x="Shipping Mode", y=TARGET),
+
+    (px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+            x="Shipping Mode",
+            y=TARGET,
+            color_discrete_sequence=[MUTED_BLUE]),
      "Average Delay Risk by Shipping Mode")
 ]:
+
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
     st.plotly_chart(style(fig, title), use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -335,7 +348,11 @@ coef_df = pd.DataFrame({
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(
     style(
-        px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+        px.bar(coef_df,
+               x="Impact",
+               y="Feature",
+               orientation="h",
+               color_discrete_sequence=[PRIMARY_COLOR]),
         "Key Drivers of Late Delivery Risk"
     ),
     use_container_width=True
@@ -343,7 +360,7 @@ st.plotly_chart(
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (FONT FIXED ONLY)
+# FOOTER (UNCHANGED EXCEPT FONT FIX)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
