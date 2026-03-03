@@ -42,45 +42,42 @@ APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
-PLOTLY_FONT = dict(family="Arial", size=12, color="#EAEAEA")
-TITLE_SIZE = 18
-AXIS_LABEL_SIZE = 13
-TICK_SIZE = 11
+PRIMARY_COLOR = "#1D4ED8"
+SECONDARY_COLOR = "#3B82F6"
+MUTED_BLUE = "#60A5FA"
+
+CHART_BG = "#161B22"
+GRID_COLOR = "#2F3542"
+TEXT_COLOR = "#E5E7EB"
 
 # ---------------------------------------------------------
-# GLOBAL UI STYLES
+# GLOBAL STYLES
 # ---------------------------------------------------------
 st.markdown("""
 <style>
-
 section[data-testid="stSidebar"] {
     background-color: #0E1117;
     padding: 18px 14px;
 }
-
 section[data-testid="stSidebar"] input[type="search"] {
     display: none !important;
 }
-
 .kpi-card {
     background: #161B22;
     border: 1px solid #232A33;
     border-radius: 14px;
-    padding: 20px;
+    padding: 18px;
     text-align: center;
 }
-
 .kpi-title {
-    color: #B0B3B8;
-    font-size: 14px;
+    color: #9CA3AF;
+    font-size: 13px;
 }
-
 .kpi-value {
     color: #EAEAEA;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 700;
 }
-
 .chart-card {
     background:#161B22;
     padding:18px;
@@ -88,16 +85,13 @@ section[data-testid="stSidebar"] input[type="search"] {
     border:1px solid #232A33;
     margin-bottom:30px;
 }
-
 .summary-box {
     background:#111827;
-    padding:24px;
+    padding:20px;
     border-radius:14px;
     border:1px solid #1F2937;
-    margin-top:20px;
     margin-bottom:30px;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -107,7 +101,6 @@ section[data-testid="stSidebar"] input[type="search"] {
 def render_header():
     if not APL_LOGO_PATH.exists():
         return
-
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="background:#0E1117;padding:45px 20px 35px;text-align:center;">
@@ -135,34 +128,16 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS
+# SIDEBAR
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
-ship_filter = st.sidebar.multiselect(
-    "Shipping Mode",
-    sorted(df["Shipping Mode"].dropna().unique())
-)
+ship_filter = st.sidebar.multiselect("Shipping Mode", sorted(df["Shipping Mode"].dropna().unique()))
+market_filter = st.sidebar.multiselect("Market", sorted(df["Market"].dropna().unique()))
+region_filter = st.sidebar.multiselect("Order Region", sorted(df["Order Region"].dropna().unique()))
+segment_filter = st.sidebar.multiselect("Customer Segment", sorted(df["Customer Segment"].dropna().unique()))
 
-market_filter = st.sidebar.multiselect(
-    "Market",
-    sorted(df["Market"].dropna().unique())
-)
-
-region_filter = st.sidebar.multiselect(
-    "Order Region",
-    sorted(df["Order Region"].dropna().unique())
-)
-
-segment_filter = st.sidebar.multiselect(
-    "Customer Segment",
-    sorted(df["Customer Segment"].dropna().unique())
-)
-
-threshold = st.sidebar.slider(
-    "🚨 High-Risk Probability Threshold",
-    0.30, 0.90, 0.70, 0.05
-)
+threshold = st.sidebar.slider("🚨 High-Risk Probability Threshold", 0.30, 0.90, 0.70, 0.05)
 
 if ship_filter:
     df = df[df["Shipping Mode"].isin(ship_filter)]
@@ -174,7 +149,7 @@ if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
 
 # ---------------------------------------------------------
-# FEATURE ENGINEERING
+# DATA CLEANING + FEATURE ENGINEERING
 # ---------------------------------------------------------
 df["Shipping_Pressure_Index"] = (
     df["Order Item Quantity"] /
@@ -233,81 +208,128 @@ model = Pipeline([
 model.fit(X_train_enc, y_train)
 y_proba = model.predict_proba(X_test_enc)[:, 1]
 
+roc = roc_auc_score(y_test, y_proba)
+prec = precision_score(y_test, y_proba >= threshold)
+rec = recall_score(y_test, y_proba >= threshold)
+f1 = f1_score(y_test, y_proba >= threshold)
+
 # ---------------------------------------------------------
-# STYLE FUNCTION (ONLY CHANGE MADE HERE)
+# KPI SECTION
+# ---------------------------------------------------------
+high_risk_count = (y_proba >= threshold).sum()
+high_risk_pct = high_risk_count / len(y_proba) * 100
+avg_probability = np.mean(y_proba)
+
+st.subheader("📊 Executive Risk Overview")
+c1, c2, c3, c4, c5, c6 = st.columns(6)
+
+def kpi(col, title, value):
+    col.markdown(f"""
+    <div class="kpi-card">
+        <div class="kpi-title">{title}</div>
+        <div class="kpi-value">{value}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+kpi(c1, "Orders Analysed", f"{len(df):,}")
+kpi(c2, "ROC-AUC", round(roc, 3))
+kpi(c3, "Precision", round(prec, 3))
+kpi(c4, "Recall", round(rec, 3))
+kpi(c5, "High-Risk Orders", f"{high_risk_count}")
+kpi(c6, "High-Risk %", f"{high_risk_pct:.1f}%")
+
+# ---------------------------------------------------------
+# EXECUTIVE SUMMARY
+# ---------------------------------------------------------
+estimated_penalty_per_delay = 50
+estimated_impact = high_risk_count * estimated_penalty_per_delay
+
+st.markdown(f"""
+<div class="summary-box">
+<h3 style="color:white;">Executive Summary</h3>
+<p style="color:#D1D5DB;">
+The predictive model identifies <b>{high_risk_count}</b> high-risk shipments 
+({high_risk_pct:.1f}% of evaluated orders). 
+The average predicted delay probability across shipments is <b>{avg_probability:.2f}</b>.
+If each delayed shipment incurs an estimated penalty of ${estimated_penalty_per_delay}, 
+proactive intervention could potentially mitigate up to <b>${estimated_impact:,}</b> 
+in operational impact.
+</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# STYLE FUNCTION
 # ---------------------------------------------------------
 def style(fig, title):
     fig.update_layout(
-        title=title,
-        font=PLOTLY_FONT,
-        title_font_size=TITLE_SIZE,
-        xaxis_title_font_size=AXIS_LABEL_SIZE,
-        yaxis_title_font_size=AXIS_LABEL_SIZE,
-        plot_bgcolor="#0E1117",
-        paper_bgcolor="#0E1117"
+        title=dict(text=title, font=dict(size=20, family="Segoe UI", color=TEXT_COLOR), x=0.01),
+        plot_bgcolor=CHART_BG,
+        paper_bgcolor=CHART_BG,
+        font=dict(color=TEXT_COLOR)
     )
-    fig.update_xaxes(tickfont_size=TICK_SIZE)
-    fig.update_yaxes(tickfont_size=TICK_SIZE)
+    fig.update_xaxes(showgrid=True, gridcolor=GRID_COLOR)
+    fig.update_yaxes(showgrid=True, gridcolor=GRID_COLOR)
     return fig
 
 # ---------------------------------------------------------
-# ALL ORIGINAL CHARTS BELOW REMAIN UNCHANGED
+# CHARTS
 # ---------------------------------------------------------
-
-# Confusion Matrix
-st.subheader("🧮 Model Error Analysis – Confusion Matrix")
-
 cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
-cm_df = pd.DataFrame(
-    cm,
-    index=["Actual On-Time", "Actual Late"],
-    columns=["Predicted On-Time", "Predicted Late"]
-)
+cm_df = pd.DataFrame(cm,
+                     index=["Actual On-Time", "Actual Late"],
+                     columns=["Predicted On-Time", "Predicted Late"])
 
-fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
+fig_cm = px.imshow(
+    cm_df,
+    text_auto=True,
+    color_continuous_scale=["#1F2937", "#334155", "#475569", PRIMARY_COLOR]
+)
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(style(fig_cm, "Model Error Analysis – Confusion Matrix"), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Risk Distribution
-st.subheader("📈 Late Delivery Risk Distribution")
+for fig, title in [
+    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}),
+                  x="Delay Probability",
+                  nbins=30,
+                  color_discrete_sequence=[PRIMARY_COLOR]),
+     "Late Delivery Risk Distribution"),
 
-fig_hist = px.histogram(
-    pd.DataFrame({"Delay Probability": y_proba}),
-    x="Delay Probability",
-    nbins=30
-)
+    (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(),
+            x="Order Region",
+            y=TARGET,
+            color_discrete_sequence=[SECONDARY_COLOR]),
+     "Average Delay Risk by Region"),
 
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_hist, "Late Delivery Risk Distribution"), use_container_width=True)
-st.markdown('</div>', unsafe_allow_html=True)
+    (px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+            x="Shipping Mode",
+            y=TARGET,
+            color_discrete_sequence=[MUTED_BLUE]),
+     "Average Delay Risk by Shipping Mode")
+]:
+    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+    st.plotly_chart(style(fig, title), use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Region Risk
-st.subheader("🌍 Average Delay Risk by Region")
+# ---------------------------------------------------------
+# NARRATIVE INSIGHTS
+# ---------------------------------------------------------
+top_region = df.groupby("Order Region")[TARGET].mean().idxmax()
+top_mode = df.groupby("Shipping Mode")[TARGET].mean().idxmax()
 
-fig_region = px.bar(
-    df.groupby("Order Region")[TARGET].mean().reset_index(),
-    x="Order Region",
-    y=TARGET
-)
-
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_region, "Average Delay Risk by Region"), use_container_width=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Shipping Mode Risk
-st.subheader("🚚 Average Delay Risk by Shipping Mode")
-
-fig_mode = px.bar(
-    df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
-    x="Shipping Mode",
-    y=TARGET
-)
-
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_mode, "Average Delay Risk by Shipping Mode"), use_container_width=True)
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown(f"""
+<div class="summary-box">
+<h4 style="color:white;">Key Insights</h4>
+<ul style="color:#D1D5DB;">
+<li>Region with highest delay risk: <b>{top_region}</b></li>
+<li>Shipping mode with highest delay risk: <b>{top_mode}</b></li>
+<li>High-risk orders represent <b>{high_risk_pct:.1f}%</b> of total shipments.</li>
+<li>Proactive intervention on these orders can significantly reduce SLA penalties.</li>
+</ul>
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # FOOTER (UNCHANGED)
