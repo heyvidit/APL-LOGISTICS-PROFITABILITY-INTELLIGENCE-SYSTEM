@@ -441,7 +441,7 @@ st.plotly_chart(
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (Refined)
+# FOOTER (Fixed Rendering + Refined Typography)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
@@ -449,27 +449,47 @@ def render_footer():
 
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
 
-    st.markdown(f"""
-    <div class="footer-container">
+    footer_html = f"""
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:16px 40px;
+        background:#0B1220;
+        border-top:1px solid #1F2933;
+        margin-top:60px;
+        font-size:13px;
+        color:#9CA3AF;
+    ">
+
         <div style="display:flex;gap:10px;align-items:center;">
-            <img src="data:image/png;base64,{encoded}" style="height:36px;">
+            <img src="data:image/png;base64,{encoded}" style="height:34px;">
             <span>
                 Mentored by 
-                <a href="https://www.linkedin.com/in/saiprasad-kagne/" target="_blank">
-                Sai Prasad Kagne</a>
+                <a href="https://www.linkedin.com/in/saiprasad-kagne/"
+                   target="_blank"
+                   style="color:#3B82F6;text-decoration:none;">
+                   Sai Prasad Kagne
+                </a>
             </span>
         </div>
 
         <span>
             Created by 
-            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6" target="_blank">
-            Vidit Kapoor</a>
+            <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
+               target="_blank"
+               style="color:#3B82F6;text-decoration:none;">
+               Vidit Kapoor
+            </a>
         </span>
 
         <span style="opacity:0.7;">
             Version 1.0 | Feb 2026
         </span>
+
     </div>
-    """, unsafe_allow_html=True)
+    """
+
+    st.markdown(footer_html, unsafe_allow_html=True)
 
 render_footer()
