@@ -414,31 +414,53 @@ st.plotly_chart(
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER
+# FOOTER (REFINED TYPOGRAPHY)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
         return
+
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
+
     st.markdown(f"""
-    <div style="display:flex;justify-content:space-between;align-items:center;
-                padding:25px 40px;background:#0E1117;color:white;
-                font-size:16px;font-family:Arial;
-                border-radius:20px;margin-top:40px;">
-        <div style="display:flex;gap:12px;align-items:center;">
-            <img src="data:image/png;base64,{encoded}" style="height:50px;">
-            <span>Mentored by 
-            <a href="https://www.linkedin.com/in/saiprasad-kagne/"
-               target="_blank" style="color:#0A66C2;">
-               Sai Prasad Kagne</a></span>
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:18px 40px;
+        background:#0B1220;
+        color:#9CA3AF;
+        font-size:13px;
+        font-family:'Inter', sans-serif;
+        border-top:1px solid #1F2933;
+        margin-top:50px;
+    ">
+
+        <div style="display:flex;gap:10px;align-items:center;">
+            <img src="data:image/png;base64,{encoded}" style="height:36px;">
+            <span>
+                Mentored by 
+                <a href="https://www.linkedin.com/in/saiprasad-kagne/"
+                   target="_blank"
+                   style="color:#3B82F6;text-decoration:none;">
+                   Sai Prasad Kagne
+                </a>
+            </span>
         </div>
+
         <span>
             Created by 
             <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
-               target="_blank" style="color:#0A66C2;">
-               Vidit Kapoor</a>
+               target="_blank"
+               style="color:#3B82F6;text-decoration:none;">
+               Vidit Kapoor
+            </a>
         </span>
-        <span>Version 1.0 | Feb 2026</span>
+
+        <span style="opacity:0.7;">
+            Version 1.0 | Feb 2026
+        </span>
+
     </div>
     """, unsafe_allow_html=True)
 
