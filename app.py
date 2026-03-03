@@ -51,6 +51,13 @@ TEXT_COLOR = "#E5E7EB"
 # ---------------------------------------------------------
 st.markdown("""
 <style>
+section[data-testid="stSidebar"] {
+    background-color: #0E1117;
+    padding: 18px 14px;
+}
+section[data-testid="stSidebar"] input[type="search"] {
+    display: none !important;
+}
 .kpi-card {
     background: #161B22;
     border: 1px solid #232A33;
@@ -72,7 +79,7 @@ st.markdown("""
     padding:20px;
     border-radius:14px;
     border:1px solid #232A33;
-    margin-top:20px;
+    margin-top:10px;
     margin-bottom:30px;
 }
 .summary-box {
@@ -80,7 +87,7 @@ st.markdown("""
     padding:24px;
     border-radius:14px;
     border:1px solid #1F2937;
-    margin-top:30px;
+    margin-top:20px;
     margin-bottom:30px;
 }
 </style>
@@ -118,7 +125,7 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# SIDEBAR (UNCHANGED)
+# SIDEBAR
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -222,16 +229,16 @@ kpi(c4, "ROC-AUC", f"{roc_auc_score(y_test, y_proba):.3f}")
 kpi(c5, "F1 Score", f"{f1_score(y_test, y_proba >= threshold):.3f}")
 
 # ---------------------------------------------------------
-# EXECUTIVE SUMMARY (PROPER SPACING)
+# EXECUTIVE SUMMARY
 # ---------------------------------------------------------
 st.markdown(f"""
 <div class="summary-box">
 <h3 style="color:white;margin-bottom:12px;">Executive Summary</h3>
 <p style="color:#D1D5DB;line-height:1.6;">
-The model flags <b>{high_risk_count}</b> high-risk shipments 
-({high_risk_pct:.1f}% of evaluated orders).
-Operational teams can prioritize these orders to proactively reduce SLA breaches 
-and prevent downstream customer dissatisfaction.
+The predictive model flags <b>{high_risk_count}</b> shipments 
+as high-risk ({high_risk_pct:.1f}% of evaluated orders).
+Operational teams can proactively intervene on these orders 
+to reduce SLA breaches and improve customer satisfaction.
 </p>
 </div>
 """, unsafe_allow_html=True)
@@ -239,6 +246,8 @@ and prevent downstream customer dissatisfaction.
 # ---------------------------------------------------------
 # CONFUSION MATRIX
 # ---------------------------------------------------------
+st.subheader("🧮 Model Error Analysis – Confusion Matrix")
+
 cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
 cm_df = pd.DataFrame(cm,
                      index=["Actual On-Time", "Actual Late"],
@@ -257,6 +266,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ---------------------------------------------------------
 # RISK DISTRIBUTION
 # ---------------------------------------------------------
+st.subheader("📈 Late Delivery Risk Distribution")
+
 fig_hist = px.histogram(
     pd.DataFrame({"Delay Probability": y_proba}),
     x="Delay Probability",
@@ -269,14 +280,25 @@ st.plotly_chart(fig_hist, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# REGION & MODE CHARTS
+# REGION ANALYSIS
 # ---------------------------------------------------------
+st.subheader("🌍 Average Delay Risk by Region")
+
 fig_region = px.bar(
     df.groupby("Order Region")[TARGET].mean().reset_index(),
     x="Order Region",
     y=TARGET,
     color_discrete_sequence=[SECONDARY_COLOR]
 )
+
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(fig_region, use_container_width=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# SHIPPING MODE ANALYSIS
+# ---------------------------------------------------------
+st.subheader("🚚 Average Delay Risk by Shipping Mode")
 
 fig_mode = px.bar(
     df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
@@ -286,16 +308,14 @@ fig_mode = px.bar(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(fig_region, use_container_width=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(fig_mode, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HIGH-RISK ACTION QUEUE (RESTORED)
+# HIGH-RISK ACTION QUEUE
 # ---------------------------------------------------------
+st.subheader("🚨 High-Risk Orders – Operations Action Queue")
+
 results = X_test.copy()
 results["Delay_Probability"] = y_proba
 results["Risk_Category"] = pd.cut(
@@ -304,7 +324,6 @@ results["Risk_Category"] = pd.cut(
     labels=["Low", "Medium", "High"]
 )
 
-st.subheader("🚨 High-Risk Orders – Operations Action Queue")
 st.dataframe(
     results[results["Risk_Category"] == "High"]
     .sort_values("Delay_Probability", ascending=False)
@@ -313,8 +332,10 @@ st.dataframe(
 )
 
 # ---------------------------------------------------------
-# EXPLAINABILITY (RESTORED)
+# EXPLAINABILITY
 # ---------------------------------------------------------
+st.subheader("🔎 Key Drivers of Late Delivery Risk")
+
 coef_df = pd.DataFrame({
     "Feature": X_train_enc.columns,
     "Impact": np.abs(model.named_steps["lr"].coef_[0])
@@ -333,7 +354,7 @@ st.plotly_chart(fig_importance, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (UNCHANGED)
+# FOOTER
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
