@@ -42,20 +42,16 @@ APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
-# ---------------------------------------------------------
-# EXECUTIVE CORPORATE COLOR SYSTEM
-# ---------------------------------------------------------
 PRIMARY_COLOR = "#1D4ED8"
 SECONDARY_COLOR = "#3B82F6"
 MUTED_BLUE = "#60A5FA"
 
 CHART_BG = "#161B22"
-PAPER_BG = "#161B22"
 GRID_COLOR = "#2F3542"
 TEXT_COLOR = "#E5E7EB"
 
 # ---------------------------------------------------------
-# GLOBAL UI STYLES (UNCHANGED)
+# GLOBAL STYLES
 # ---------------------------------------------------------
 st.markdown("""
 <style>
@@ -66,27 +62,20 @@ section[data-testid="stSidebar"] {
 section[data-testid="stSidebar"] input[type="search"] {
     display: none !important;
 }
-.sidebar-card {
-    background-color: #161B22;
-    padding: 14px;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    border: 1px solid #232A33;
-}
 .kpi-card {
     background: #161B22;
     border: 1px solid #232A33;
     border-radius: 14px;
-    padding: 20px;
+    padding: 18px;
     text-align: center;
 }
 .kpi-title {
-    color: #B0B3B8;
-    font-size: 14px;
+    color: #9CA3AF;
+    font-size: 13px;
 }
 .kpi-value {
     color: #EAEAEA;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 700;
 }
 .chart-card {
@@ -96,17 +85,22 @@ section[data-testid="stSidebar"] input[type="search"] {
     border:1px solid #232A33;
     margin-bottom:30px;
 }
+.summary-box {
+    background:#111827;
+    padding:20px;
+    border-radius:14px;
+    border:1px solid #1F2937;
+    margin-bottom:30px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HEADER (UNCHANGED)
+# HEADER
 # ---------------------------------------------------------
 def render_header():
     if not APL_LOGO_PATH.exists():
-        st.warning("APL logo not found")
         return
-
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="background:#0E1117;padding:45px 20px 35px;text-align:center;">
@@ -134,7 +128,7 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS (UNCHANGED)
+# SIDEBAR
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -155,21 +149,7 @@ if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
 
 # ---------------------------------------------------------
-# DATA CLEANING
-# ---------------------------------------------------------
-LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
-HIGH_CARDINALITY = [
-    "Customer City","Customer State","Order City","Order State",
-    "Customer Country","Order Country",
-    "Customer Id","Order Customer Id",
-    "Customer Fname","Customer Lname",
-    "Customer Street","Customer Zipcode","Product Name"
-]
-
-df.drop(columns=[c for c in LEAKAGE_COLS + HIGH_CARDINALITY if c in df.columns], inplace=True)
-
-# ---------------------------------------------------------
-# FEATURE ENGINEERING
+# DATA CLEANING + FEATURE ENGINEERING
 # ---------------------------------------------------------
 df["Shipping_Pressure_Index"] = (
     df["Order Item Quantity"] /
@@ -194,9 +174,6 @@ df["Region_Delay_Risk"] = (
     .fillna(df[TARGET].mean())
 )
 
-# ---------------------------------------------------------
-# MODEL
-# ---------------------------------------------------------
 FEATURES = [
     "Days for shipment (scheduled)",
     "Order Item Quantity",
@@ -237,10 +214,14 @@ rec = recall_score(y_test, y_proba >= threshold)
 f1 = f1_score(y_test, y_proba >= threshold)
 
 # ---------------------------------------------------------
-# KPI
+# KPI SECTION
 # ---------------------------------------------------------
+high_risk_count = (y_proba >= threshold).sum()
+high_risk_pct = high_risk_count / len(y_proba) * 100
+avg_probability = np.mean(y_proba)
+
 st.subheader("📊 Executive Risk Overview")
-c1, c2, c3, c4, c5 = st.columns(5)
+c1, c2, c3, c4, c5, c6 = st.columns(6)
 
 def kpi(col, title, value):
     col.markdown(f"""
@@ -254,28 +235,46 @@ kpi(c1, "Orders Analysed", f"{len(df):,}")
 kpi(c2, "ROC-AUC", round(roc, 3))
 kpi(c3, "Precision", round(prec, 3))
 kpi(c4, "Recall", round(rec, 3))
-kpi(c5, "F1 Score", round(f1, 3))
+kpi(c5, "High-Risk Orders", f"{high_risk_count}")
+kpi(c6, "High-Risk %", f"{high_risk_pct:.1f}%")
 
 # ---------------------------------------------------------
-# CHART STYLE HELPER
+# EXECUTIVE SUMMARY
+# ---------------------------------------------------------
+estimated_penalty_per_delay = 50
+estimated_impact = high_risk_count * estimated_penalty_per_delay
+
+st.markdown(f"""
+<div class="summary-box">
+<h3 style="color:white;">Executive Summary</h3>
+<p style="color:#D1D5DB;">
+The predictive model identifies <b>{high_risk_count}</b> high-risk shipments 
+({high_risk_pct:.1f}% of evaluated orders). 
+The average predicted delay probability across shipments is <b>{avg_probability:.2f}</b>.
+If each delayed shipment incurs an estimated penalty of ${estimated_penalty_per_delay}, 
+proactive intervention could potentially mitigate up to <b>${estimated_impact:,}</b> 
+in operational impact.
+</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# STYLE FUNCTION
 # ---------------------------------------------------------
 def style(fig, title):
     fig.update_layout(
         title=dict(text=title, font=dict(size=20, family="Segoe UI", color=TEXT_COLOR), x=0.01),
-        font=dict(family="Segoe UI", size=12, color=TEXT_COLOR),
         plot_bgcolor=CHART_BG,
-        paper_bgcolor=PAPER_BG,
-        margin=dict(l=40, r=40, t=60, b=40)
+        paper_bgcolor=CHART_BG,
+        font=dict(color=TEXT_COLOR)
     )
     fig.update_xaxes(showgrid=True, gridcolor=GRID_COLOR)
     fig.update_yaxes(showgrid=True, gridcolor=GRID_COLOR)
     return fig
 
 # ---------------------------------------------------------
-# CONFUSION MATRIX
+# CHARTS
 # ---------------------------------------------------------
-st.subheader("🧮 Model Error Analysis – Confusion Matrix")
-
 cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
 cm_df = pd.DataFrame(cm,
                      index=["Actual On-Time", "Actual Late"],
@@ -291,9 +290,6 @@ st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(style(fig_cm, "Model Error Analysis – Confusion Matrix"), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# VISUALS
-# ---------------------------------------------------------
 for fig, title in [
     (px.histogram(pd.DataFrame({"Delay Probability": y_proba}),
                   x="Delay Probability",
@@ -313,54 +309,30 @@ for fig, title in [
             color_discrete_sequence=[MUTED_BLUE]),
      "Average Delay Risk by Shipping Mode")
 ]:
-
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
     st.plotly_chart(style(fig, title), use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HIGH-RISK ACTION QUEUE
+# NARRATIVE INSIGHTS
 # ---------------------------------------------------------
-results = X_test.copy()
-results["Delay_Probability"] = y_proba
-results["Risk_Category"] = pd.cut(
-    results["Delay_Probability"],
-    [0, 0.4, threshold, 1],
-    labels=["Low", "Medium", "High"]
-)
+top_region = df.groupby("Order Region")[TARGET].mean().idxmax()
+top_mode = df.groupby("Shipping Mode")[TARGET].mean().idxmax()
 
-st.subheader("🚨 High-Risk Orders – Operations Action Queue")
-st.dataframe(
-    results[results["Risk_Category"] == "High"]
-    .sort_values("Delay_Probability", ascending=False)
-    .head(50),
-    use_container_width=True
-)
-
-# ---------------------------------------------------------
-# EXPLAINABILITY
-# ---------------------------------------------------------
-coef_df = pd.DataFrame({
-    "Feature": X_train_enc.columns,
-    "Impact": np.abs(model.named_steps["lr"].coef_[0])
-}).sort_values("Impact", ascending=False).head(15)
-
-st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(
-    style(
-        px.bar(coef_df,
-               x="Impact",
-               y="Feature",
-               orientation="h",
-               color_discrete_sequence=[PRIMARY_COLOR]),
-        "Key Drivers of Late Delivery Risk"
-    ),
-    use_container_width=True
-)
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown(f"""
+<div class="summary-box">
+<h4 style="color:white;">Key Insights</h4>
+<ul style="color:#D1D5DB;">
+<li>Region with highest delay risk: <b>{top_region}</b></li>
+<li>Shipping mode with highest delay risk: <b>{top_mode}</b></li>
+<li>High-risk orders represent <b>{high_risk_pct:.1f}%</b> of total shipments.</li>
+<li>Proactive intervention on these orders can significantly reduce SLA penalties.</li>
+</ul>
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (UNCHANGED EXCEPT FONT FIX)
+# FOOTER (UNCHANGED)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
