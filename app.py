@@ -276,7 +276,7 @@ def style(fig, title):
 # ---------------------------------------------------------
 # CONFUSION MATRIX
 # ---------------------------------------------------------
-st.subheader("")
+st.subheader("🧮 Model Error Analysis – Confusion Matrix")
 
 cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
 cm_df = pd.DataFrame(cm,
@@ -290,13 +290,13 @@ fig_cm = px.imshow(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_cm, "🧮 Model Error Analysis – Confusion Matrix"), use_container_width=True)
+st.plotly_chart(style(fig_cm), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # RISK DISTRIBUTION
 # ---------------------------------------------------------
-st.subheader("")
+st.subheader("📈 Late Delivery Risk Distribution")
 
 fig_hist = px.histogram(
     pd.DataFrame({"Delay Probability": y_proba}),
@@ -306,13 +306,13 @@ fig_hist = px.histogram(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_hist, "📈 Late Delivery Risk Distribution"), use_container_width=True)
+st.plotly_chart(style(fig_hist), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # REGION & MODE
 # ---------------------------------------------------------
-st.subheader("")
+st.subheader("🌍 Average Delay Risk by Region")
 
 fig_region = px.bar(
     df.groupby("Order Region")[TARGET].mean().reset_index(),
@@ -322,10 +322,10 @@ fig_region = px.bar(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_region, "🌍 Average Delay Risk by Region"), use_container_width=True)
+st.plotly_chart(style(fig_region), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.subheader("")
+st.subheader("🚚 Average Delay Risk by Shipping Mode")
 
 fig_mode = px.bar(
     df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
@@ -335,7 +335,7 @@ fig_mode = px.bar(
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(style(fig_mode, "🚚 Average Delay Risk by Shipping Mode"), use_container_width=True)
+st.plotly_chart(style(fig_mode), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
@@ -409,4 +409,3 @@ def render_footer():
     """, unsafe_allow_html=True)
 
 render_footer()
-
