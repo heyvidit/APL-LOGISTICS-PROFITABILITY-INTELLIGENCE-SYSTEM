@@ -48,24 +48,18 @@ AXIS_LABEL_SIZE = 14
 TICK_SIZE = 12
 
 # ---------------------------------------------------------
-# PROFESSIONAL SIDEBAR DESIGN (ONLY VISUAL CHANGES)
+# SIDEBAR DESIGN
 # ---------------------------------------------------------
 st.markdown("""
 <style>
-
-/* Sidebar Base */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg,#0B0F14 0%, #0E141B 100%);
     border-right: 1px solid #1F2933;
     padding: 28px 18px;
 }
-
-/* Remove empty search */
 section[data-testid="stSidebar"] input[type="search"] {
     display: none !important;
 }
-
-/* Brand Block */
 .sidebar-brand {
     background: linear-gradient(135deg,#0A66C2,#004182);
     padding: 22px;
@@ -74,21 +68,17 @@ section[data-testid="stSidebar"] input[type="search"] {
     margin-bottom: 28px;
     box-shadow: 0 8px 25px rgba(0,0,0,0.4);
 }
-
 .sidebar-brand h2 {
     color: white;
     font-size: 18px;
     margin: 0;
     font-weight: 700;
 }
-
 .sidebar-brand p {
     color: #DCE6F2;
     font-size: 12px;
     margin-top: 6px;
 }
-
-/* Section Titles */
 .sidebar-section-title {
     font-size: 12px;
     color: #9BA3AF;
@@ -96,35 +86,45 @@ section[data-testid="stSidebar"] input[type="search"] {
     letter-spacing: 1px;
     margin: 18px 0 12px;
 }
-
-/* Divider */
 .sidebar-divider {
     height: 1px;
     background: #1F2933;
     margin: 20px 0;
 }
-
-/* Filter Cards */
 .sidebar-card {
     background: #11161D;
     padding: 16px;
     border-radius: 16px;
     border: 1px solid #1F2933;
     margin-bottom: 20px;
-    transition: 0.3s ease;
 }
-
-.sidebar-card:hover {
-    border: 1px solid #0A66C2;
-    box-shadow: 0 4px 15px rgba(10,102,194,0.15);
-}
-
-/* Labels */
 section[data-testid="stSidebar"] label {
     font-size: 13px;
     color: #C9D1D9;
 }
-
+.kpi-card {
+    background: #11161D;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid #1F2933;
+    text-align: center;
+}
+.kpi-title {
+    color: #9BA3AF;
+    font-size: 14px;
+}
+.kpi-value {
+    color: #FFFFFF;
+    font-size: 30px;
+    font-weight: 700;
+}
+.chart-card {
+    background: #11161D;
+    padding: 24px;
+    border-radius: 18px;
+    border: 1px solid #1F2933;
+    margin-bottom: 30px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -135,9 +135,7 @@ def render_header():
     if not APL_LOGO_PATH.exists():
         st.warning("APL logo not found")
         return
-
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
-
     st.markdown(f"""
     <div style="background:linear-gradient(90deg,#0A66C2,#004182);
                 padding:55px 20px 45px;
@@ -168,9 +166,8 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# SIDEBAR STRUCTURE (LOGIC IDENTICAL)
+# SIDEBAR
 # ---------------------------------------------------------
-
 st.sidebar.markdown("""
 <div class="sidebar-brand">
     <h2>APL Risk Engine</h2>
@@ -188,35 +185,20 @@ threshold = st.sidebar.slider(
 st.sidebar.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 st.sidebar.markdown('<div class="sidebar-section-title">Filters</div>', unsafe_allow_html=True)
 
-# Logistics
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("🚚 Logistics")
-ship_filter = st.sidebar.multiselect(
-    "Shipping Mode",
-    sorted(df["Shipping Mode"].dropna().unique())
-)
+ship_filter = st.sidebar.multiselect("Shipping Mode", sorted(df["Shipping Mode"].dropna().unique()))
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
-# Geography
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("🌍 Geography")
-market_filter = st.sidebar.multiselect(
-    "Market",
-    sorted(df["Market"].dropna().unique())
-)
-region_filter = st.sidebar.multiselect(
-    "Order Region",
-    sorted(df["Order Region"].dropna().unique())
-)
+market_filter = st.sidebar.multiselect("Market", sorted(df["Market"].dropna().unique()))
+region_filter = st.sidebar.multiselect("Order Region", sorted(df["Order Region"].dropna().unique()))
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
-# Customer
 st.sidebar.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
 st.sidebar.subheader("👥 Customer")
-segment_filter = st.sidebar.multiselect(
-    "Customer Segment",
-    sorted(df["Customer Segment"].dropna().unique())
-)
+segment_filter = st.sidebar.multiselect("Customer Segment", sorted(df["Customer Segment"].dropna().unique()))
 st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 if ship_filter:
@@ -227,6 +209,17 @@ if region_filter:
     df = df[df["Order Region"].isin(region_filter)]
 if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
+
+# ---------------------------------------------------------
+# VALIDATION BEFORE MODEL
+# ---------------------------------------------------------
+if len(df) < 10:
+    st.error("Not enough data after filtering. Please relax filters.")
+    st.stop()
+
+if df[TARGET].nunique() < 2:
+    st.error("Filtered data contains only one class. Adjust filters.")
+    st.stop()
 
 # ---------------------------------------------------------
 # DATA CLEANING
@@ -269,7 +262,7 @@ df["Region_Delay_Risk"] = (
 )
 
 # ---------------------------------------------------------
-# MODEL DATA
+# MODEL
 # ---------------------------------------------------------
 FEATURES = [
     "Days for shipment (scheduled)",
@@ -351,29 +344,43 @@ cm_df = pd.DataFrame(
     columns=["Predicted On-Time", "Predicted Late"]
 )
 
-fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
-
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-st.plotly_chart(fig_cm, use_container_width=True)
+st.plotly_chart(px.imshow(cm_df, text_auto=True), use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# VISUALS
+# DISTRIBUTION
 # ---------------------------------------------------------
-for fig, title in [
-    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}), x="Delay Probability", nbins=30),
-     "Late Delivery Risk Distribution"),
-    (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(), x="Order Region", y=TARGET),
-     "Average Delay Risk by Region"),
-    (px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(), x="Shipping Mode", y=TARGET),
-     "Average Delay Risk by Shipping Mode")
-]:
-    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.plotly_chart(fig, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(
+    px.histogram(pd.DataFrame({"Delay Probability": y_proba}),
+                 x="Delay Probability",
+                 nbins=30),
+    use_container_width=True
+)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HIGH-RISK ACTION QUEUE
+# REGION & SHIPPING VISUALS
+# ---------------------------------------------------------
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(
+    px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(),
+           x="Order Region", y=TARGET),
+    use_container_width=True
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(
+    px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
+           x="Shipping Mode", y=TARGET),
+    use_container_width=True
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# HIGH RISK QUEUE
 # ---------------------------------------------------------
 results = X_test.copy()
 results["Delay_Probability"] = y_proba
@@ -412,7 +419,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
         return
-
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;
