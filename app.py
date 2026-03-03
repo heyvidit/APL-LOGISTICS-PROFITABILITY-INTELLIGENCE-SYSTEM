@@ -48,112 +48,94 @@ AXIS_LABEL_SIZE = 14
 TICK_SIZE = 12
 
 # ---------------------------------------------------------
-# PREMIUM GLOBAL UI STYLES (ENHANCED ONLY – NO LOGIC TOUCH)
+# ENHANCED UI (NO LOGIC CHANGES)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
 
-/* Main App Background */
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(180deg, #0E1117 0%, #0B0F14 100%);
+    background: linear-gradient(180deg,#0E1117 0%,#0B0F14 100%);
 }
 
-/* Sidebar */
 section[data-testid="stSidebar"] {
-    background: #0B0F14;
-    padding: 20px 16px;
-    border-right: 1px solid #1F2933;
+    background:#0B0F14;
+    border-right:1px solid #1F2933;
+    padding:20px 16px;
 }
 
-/* Remove empty search */
 section[data-testid="stSidebar"] input[type="search"] {
-    display: none !important;
+    display:none !important;
 }
 
-/* Sidebar headers */
-section[data-testid="stSidebar"] h3 {
-    font-size: 15px;
-    margin: 18px 0 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #1F2933;
-    color: #EAEAEA;
-}
-
-/* Sidebar cards */
 .sidebar-card {
-    background: #11161D;
-    padding: 16px;
-    border-radius: 14px;
-    margin-bottom: 18px;
-    border: 1px solid #1F2933;
-    transition: all 0.3s ease;
+    background:#11161D;
+    padding:16px;
+    border-radius:16px;
+    border:1px solid #1F2933;
+    margin-bottom:18px;
+    transition:0.3s ease;
 }
 
 .sidebar-card:hover {
-    border: 1px solid #0A66C2;
+    border:1px solid #0A66C2;
 }
 
-/* KPI Cards */
 .kpi-card {
-    background: linear-gradient(145deg,#121821,#0F141B);
-    border-radius: 18px;
-    padding: 25px;
-    text-align: center;
-    border: 1px solid #1F2933;
-    transition: all 0.3s ease;
+    background:linear-gradient(145deg,#121821,#0F141B);
+    border-radius:18px;
+    padding:25px;
+    text-align:center;
+    border:1px solid #1F2933;
+    transition:0.3s ease;
 }
 
 .kpi-card:hover {
-    transform: translateY(-4px);
-    border: 1px solid #0A66C2;
-    box-shadow: 0 8px 25px rgba(10,102,194,0.15);
+    transform:translateY(-5px);
+    border:1px solid #0A66C2;
+    box-shadow:0 8px 25px rgba(10,102,194,0.2);
 }
 
 .kpi-title {
-    color: #9BA3AF;
-    font-size: 14px;
-    letter-spacing: 0.5px;
+    color:#9BA3AF;
+    font-size:14px;
 }
 
 .kpi-value {
-    color: #FFFFFF;
-    font-size: 32px;
-    font-weight: 700;
-    margin-top: 8px;
+    color:#FFFFFF;
+    font-size:32px;
+    font-weight:700;
+    margin-top:6px;
 }
 
-/* Chart Cards */
 .chart-card {
-    background: #11161D;
-    padding: 24px;
-    border-radius: 18px;
-    border: 1px solid #1F2933;
-    margin-bottom: 35px;
-    transition: 0.3s ease;
+    background:#11161D;
+    padding:24px;
+    border-radius:18px;
+    border:1px solid #1F2933;
+    margin-bottom:35px;
+    transition:0.3s ease;
 }
 
 .chart-card:hover {
-    border: 1px solid #0A66C2;
+    border:1px solid #0A66C2;
 }
 
-/* Dataframe */
 div[data-testid="stDataFrame"] {
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1px solid #1F2933;
+    border-radius:18px;
+    overflow:hidden;
+    border:1px solid #1F2933;
 }
 
-/* Section spacing */
 .block-container {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
+    padding-top:2rem;
+    padding-bottom:2rem;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HEADER (VISUALLY ENHANCED)
+# HEADER
 # ---------------------------------------------------------
 def render_header():
     if not APL_LOGO_PATH.exists():
@@ -163,14 +145,11 @@ def render_header():
     encoded = base64.b64encode(APL_LOGO_PATH.read_bytes()).decode()
 
     st.markdown(f"""
-    <div style="
-        background: linear-gradient(90deg,#0A66C2 0%,#004182 100%);
-        padding:55px 20px 45px;
-        border-radius:20px;
-        text-align:center;
-        margin-bottom:35px;
-        box-shadow:0 10px 40px rgba(0,0,0,0.35);
-    ">
+    <div style="background:linear-gradient(90deg,#0A66C2,#004182);
+                padding:55px 20px 45px;
+                border-radius:20px;
+                text-align:center;
+                margin-bottom:35px;">
         <img src="data:image/png;base64,{encoded}"
              style="width:14rem;margin-bottom:20px;">
         <h1 style="color:white;font-size:42px;margin:0;font-weight:800;">
@@ -185,7 +164,7 @@ def render_header():
 render_header()
 
 # ---------------------------------------------------------
-# LOAD DATA (UNCHANGED)
+# LOAD DATA
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
@@ -195,7 +174,7 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# DATA CLEANING (UNCHANGED)
+# DATA CLEANING
 # ---------------------------------------------------------
 LEAKAGE_COLS = ["Days for shipping (real)", "Delivery Status"]
 HIGH_CARDINALITY = [
@@ -209,7 +188,7 @@ HIGH_CARDINALITY = [
 df.drop(columns=[c for c in LEAKAGE_COLS + HIGH_CARDINALITY if c in df.columns], inplace=True)
 
 # ---------------------------------------------------------
-# FEATURE ENGINEERING (UNCHANGED)
+# FEATURE ENGINEERING
 # ---------------------------------------------------------
 df["Shipping_Pressure_Index"] = (
     df["Order Item Quantity"] /
@@ -235,7 +214,7 @@ df["Region_Delay_Risk"] = (
 )
 
 # ---------------------------------------------------------
-# SIDEBAR FILTERS (UNCHANGED LOGIC)
+# SIDEBAR FILTERS (UNCHANGED)
 # ---------------------------------------------------------
 st.sidebar.header("🔎 Filters")
 
@@ -277,10 +256,8 @@ if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
 
 # ---------------------------------------------------------
-# MODEL, TRAINING, METRICS, VISUALS
-# (100% IDENTICAL TO YOUR ORIGINAL LOGIC)
+# MODEL DATA
 # ---------------------------------------------------------
-
 FEATURES = [
     "Days for shipment (scheduled)",
     "Order Item Quantity",
@@ -334,7 +311,9 @@ prec = precision_score(y_test, y_proba >= threshold)
 rec = recall_score(y_test, y_proba >= threshold)
 f1 = f1_score(y_test, y_proba >= threshold)
 
-# KPI Section
+# ---------------------------------------------------------
+# KPI SECTION
+# ---------------------------------------------------------
 st.subheader("📊 Executive Risk Overview")
 c1, c2, c3, c4, c5 = st.columns(5)
 
@@ -352,7 +331,9 @@ kpi(c3, "Precision", round(prec, 3))
 kpi(c4, "Recall", round(rec, 3))
 kpi(c5, "F1 Score", round(f1, 3))
 
-# Confusion Matrix
+# ---------------------------------------------------------
+# CONFUSION MATRIX
+# ---------------------------------------------------------
 st.subheader("🧮 Model Error Analysis – Confusion Matrix")
 
 cm = confusion_matrix(y_test, (y_proba >= threshold).astype(int))
@@ -366,6 +347,73 @@ fig_cm = px.imshow(cm_df, text_auto=True, color_continuous_scale="Blues")
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
 st.plotly_chart(fig_cm, use_container_width=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# CHART STYLING HELPER
+# ---------------------------------------------------------
+def style(fig, title):
+    fig.update_layout(
+        title=title,
+        font=PLOTLY_FONT,
+        title_font_size=TITLE_SIZE,
+        xaxis_title_font_size=AXIS_LABEL_SIZE,
+        yaxis_title_font_size=AXIS_LABEL_SIZE
+    )
+    fig.update_xaxes(tickfont_size=TICK_SIZE)
+    fig.update_yaxes(tickfont_size=TICK_SIZE)
+    return fig
+
+# ---------------------------------------------------------
+# VISUALS (ALL ORIGINAL GRAPHS RESTORED)
+# ---------------------------------------------------------
+for fig, title in [
+    (px.histogram(pd.DataFrame({"Delay Probability": y_proba}), x="Delay Probability", nbins=30),
+     "Late Delivery Risk Distribution"),
+    (px.bar(df.groupby("Order Region")[TARGET].mean().reset_index(), x="Order Region", y=TARGET),
+     "Average Delay Risk by Region"),
+    (px.bar(df.groupby("Shipping Mode")[TARGET].mean().reset_index(), x="Shipping Mode", y=TARGET),
+     "Average Delay Risk by Shipping Mode")
+]:
+    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+    st.plotly_chart(style(fig, title), use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# HIGH-RISK ACTION QUEUE
+# ---------------------------------------------------------
+results = X_test.copy()
+results["Delay_Probability"] = y_proba
+results["Risk_Category"] = pd.cut(
+    results["Delay_Probability"],
+    [0, 0.4, threshold, 1],
+    labels=["Low", "Medium", "High"]
+)
+
+st.subheader("🚨 High-Risk Orders – Operations Action Queue")
+st.dataframe(
+    results[results["Risk_Category"] == "High"]
+    .sort_values("Delay_Probability", ascending=False)
+    .head(50),
+    use_container_width=True
+)
+
+# ---------------------------------------------------------
+# EXPLAINABILITY
+# ---------------------------------------------------------
+coef_df = pd.DataFrame({
+    "Feature": X_train_enc.columns,
+    "Impact": np.abs(model.named_steps["lr"].coef_[0])
+}).sort_values("Impact", ascending=False).head(15)
+
+st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+st.plotly_chart(
+    style(
+        px.bar(coef_df, x="Impact", y="Feature", orientation="h"),
+        "Key Drivers of Late Delivery Risk"
+    ),
+    use_container_width=True
+)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
