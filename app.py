@@ -43,8 +43,8 @@ UNIFIED_LOGO_PATH = Path("unified logo.png")
 TARGET = "Late_delivery_risk"
 
 PRIMARY_COLOR = "#1D4ED8"
-SECONDARY_COLOR = "#3B82F6"
-MUTED_BLUE = "#60A5FA"
+SECONDARY_COLOR = "#1D4ED8"
+MUTED_BLUE = "#1D4ED8"
 
 CHART_BG = "#161B22"
 GRID_COLOR = "#2F3542"
@@ -240,7 +240,7 @@ kpi(c5, "High-Risk Orders", f"{high_risk_count}")
 kpi(c6, "High-Risk %", f"{high_risk_pct:.1f}%")
 
 # ---------------------------------------------------------
-# EXECUTIVE SUMMARY (FIXED MARGIN)
+# EXECUTIVE SUMMARY
 # ---------------------------------------------------------
 estimated_penalty_per_delay = 50
 estimated_impact = high_risk_count * estimated_penalty_per_delay
@@ -260,7 +260,7 @@ in operational impact.
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# STYLE FUNCTION (UNCHANGED)
+# STYLE FUNCTION
 # ---------------------------------------------------------
 def style(fig, title):
     fig.update_layout(
@@ -286,7 +286,7 @@ cm_df = pd.DataFrame(cm,
 fig_cm = px.imshow(
     cm_df,
     text_auto=True,
-    color_continuous_scale=["#1F2937", "#334155", "#475569", PRIMARY_COLOR]
+    color_continuous_scale=["#1F2937", "#334155", "#475569", "#1D4ED8"]
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
@@ -318,7 +318,7 @@ fig_region = px.bar(
     df.groupby("Order Region")[TARGET].mean().reset_index(),
     x="Order Region",
     y=TARGET,
-    color_discrete_sequence=[SECONDARY_COLOR]
+    color_discrete_sequence=[PRIMARY_COLOR]
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
@@ -331,7 +331,7 @@ fig_mode = px.bar(
     df.groupby("Shipping Mode")[TARGET].mean().reset_index(),
     x="Shipping Mode",
     y=TARGET,
-    color_discrete_sequence=[MUTED_BLUE]
+    color_discrete_sequence=[PRIMARY_COLOR]
 )
 
 st.markdown('<div class="chart-card">', unsafe_allow_html=True)
@@ -339,7 +339,7 @@ st.plotly_chart(style(fig_mode, "Average Delay Risk by Shipping Mode"), use_cont
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# HIGH-RISK ACTION QUEUE (RESTORED)
+# HIGH-RISK ACTION QUEUE
 # ---------------------------------------------------------
 st.subheader("🚨 High-Risk Orders – Operations Action Queue")
 
@@ -359,7 +359,7 @@ st.dataframe(
 )
 
 # ---------------------------------------------------------
-# EXPLAINABILITY (RESTORED)
+# EXPLAINABILITY
 # ---------------------------------------------------------
 st.subheader("🔎 Key Drivers of Late Delivery Risk")
 
@@ -381,7 +381,7 @@ st.plotly_chart(style(fig_importance, "Key Drivers of Late Delivery Risk"), use_
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (UNCHANGED)
+# FOOTER
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
