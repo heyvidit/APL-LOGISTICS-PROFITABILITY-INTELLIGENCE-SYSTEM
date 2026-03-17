@@ -306,7 +306,7 @@ def render_footer():
     encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;
-                padding:25px 40px;background:#0E1117;color:white;
+                padding:29px 40px;background:#0E1117;color:white;
                 font-size:13px;font-family:'Segoe UI',sans-serif;">
         <div style="display:flex;gap:12px;align-items:center;">
             <img src="data:image/png;base64,{encoded}" style="height:50px;">
