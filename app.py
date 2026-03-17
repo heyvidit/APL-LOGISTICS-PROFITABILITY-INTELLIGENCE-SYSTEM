@@ -221,7 +221,13 @@ with tab2:
 )
 
 # Pareto line
-    fig_pareto.add_hline(y=0.8, line_dash="dash", yref="y2")
+    fig_pareto.add_scatter(
+    x=top_n["Customer Id"],
+    y=top_n["Cumulative %"],
+    mode="lines+markers",
+    name="Cumulative %",
+    color="red",    
+    yaxis="y2"
 )
 
 # Layout
