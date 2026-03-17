@@ -253,40 +253,38 @@ with tab2:
 # ---------------------------------------------------------
 # DISCOUNT TAB
 # ---------------------------------------------------------
+
 with tab4:
+    st.subheader("📊 Discount Threshold Analysis")
 
-st.subheader("📊 Discount Threshold Analysis")
+    # Create bins
+    df["Discount Bin"] = pd.cut(df["Order Item Discount Rate"], bins=5)
 
-# Create bins
-df["Discount Bin"] = pd.cut(df["Order Item Discount Rate"], bins=5)
+    # Group analysis
+    discount_analysis = df.groupby("Discount Bin").agg({
+        "Profit Margin": "mean"
+    }).reset_index()
 
-# Group analysis
-discount_analysis = df.groupby("Discount Bin").agg({
-    "Profit Margin": "mean"
-}).reset_index()
+    # Bar chart
+    fig_discount = px.bar(
+        discount_analysis,
+        x="Discount Bin",
+        y="Profit Margin",
+        color_discrete_sequence=[PRIMARY_COLOR]
+    )
 
-# Bar chart
-fig_discount = px.bar(
-    discount_analysis,
-    x="Discount Bin",
-    y="Profit Margin",
-    color_discrete_sequence=[PRIMARY_COLOR]
-)
+    st.plotly_chart(style(fig_discount, "Average Profit Margin by Discount Range"), use_container_width=True)
 
-st.plotly_chart(style(fig_discount, "Average Profit Margin by Discount Range"), use_container_width=True)
+    # ---------------------------------------------------------
+    # 🔥 THRESHOLD DETECTION
+    # ---------------------------------------------------------
+    negative_bins = discount_analysis[discount_analysis["Profit Margin"] < 0]
 
-# ---------------------------------------------------------
-# 🔥 THRESHOLD DETECTION
-# ---------------------------------------------------------
-
-# Find where margin becomes negative
-negative_bins = discount_analysis[discount_analysis["Profit Margin"] < 0]
-
-if not negative_bins.empty:
-    threshold = str(negative_bins.iloc[0]["Discount Bin"])
-    st.error(f"⚠️ Profit starts turning negative in discount range: {threshold}")
-else:
-    st.success("✅ No negative margin detected across discount ranges")
+    if not negative_bins.empty:
+        threshold = str(negative_bins.iloc[0]["Discount Bin"])
+        st.error(f"⚠️ Profit starts turning negative in discount range: {threshold}")
+    else:
+        st.success("✅ No negative margin detected across discount ranges")
 
 # ---------------------------------------------------------
 # REGION TAB
