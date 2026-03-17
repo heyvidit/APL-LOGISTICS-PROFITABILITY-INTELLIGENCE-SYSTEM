@@ -187,29 +187,29 @@ with tab2:
     st.subheader("🔥 Pareto Analysis (Top Customers)")
 
 # STEP 1: Proper aggregation
-customer_pareto = df.groupby("Customer Id").agg({
+    customer_pareto = df.groupby("Customer Id").agg({
     "Order Profit Per Order": "sum"
 }).reset_index()
 
 # STEP 2: Sort
-customer_pareto = customer_pareto.sort_values(
+    customer_pareto = customer_pareto.sort_values(
     "Order Profit Per Order", ascending=False
 )
 
 # STEP 3: Cumulative %
-customer_pareto["Cumulative %"] = (
+    customer_pareto["Cumulative %"] = (
     customer_pareto["Order Profit Per Order"].cumsum() /
     customer_pareto["Order Profit Per Order"].sum()
 )
 
 # STEP 4: Take top 15 (clean visualization)
-top_n = customer_pareto.head(15).copy()
+    top_n = customer_pareto.head(15).copy()
 
 # Convert to string (IMPORTANT)
-top_n["Customer Id"] = top_n["Customer Id"].astype(str)
+    top_n["Customer Id"] = top_n["Customer Id"].astype(str)
 
 # STEP 5: Plot
-fig_pareto = px.bar(
+    fig_pareto = px.bar(
     top_n,
     x="Customer Id",
     y="Order Profit Per Order",
@@ -217,7 +217,7 @@ fig_pareto = px.bar(
 )
 
 # Add cumulative line
-fig_pareto.add_scatter(
+    fig_pareto.add_scatter(
     x=top_n["Customer Id"],
     y=top_n["Cumulative %"],
     mode="lines+markers",
@@ -226,7 +226,7 @@ fig_pareto.add_scatter(
 )
 
 # Layout fix
-fig_pareto.update_layout(
+    fig_pareto.update_layout(
     yaxis2=dict(
         overlaying="y",
         side="right",
