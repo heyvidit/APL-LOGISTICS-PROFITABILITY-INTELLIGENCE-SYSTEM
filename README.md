@@ -1,135 +1,106 @@
-# 📦 APL Logistics – Predictive Late Delivery Risk Intelligence
+# 📊 APL Logistics – Profitability Intelligence Dashboard
 
-## Overview
-This project delivers a **predictive analytics system** that identifies shipments at risk of late delivery *before dispatch*.  
-It enables logistics teams to move from **reactive delay handling** to **proactive operational planning** using data-driven risk intelligence.
+## 📌 Project Overview
+This project focuses on **profitability-driven analytics** for APL Logistics.  
+Instead of just analyzing sales, it uncovers **where the business is actually making or losing money**.
 
-**Organization:** APL Logistics (KWE Group)  
-**Internship:** Unified Mentor Pvt. Ltd.  
-**Author:** Vidit Kapoor  
-**Date:** February 2026  
-
----
-
-## 🎯 Business Problem
-Late deliveries in global logistics networks lead to:
-- SLA breaches and financial penalties
-- Customer dissatisfaction and churn
-- High operational costs due to last-minute fixes
-
-APL Logistics lacked:
-- Early warning signals for shipment delays
-- Quantitative risk scores for prioritization
-- Explainable insights into delay drivers
-
-This system addresses those gaps.
+The dashboard provides insights into:
+- Customer profitability
+- Product & category performance
+- Discount impact on margins
+- Regional profit distribution
 
 ---
 
-## 🧠 Solution Summary
-The application:
-- Predicts **Late Delivery Probability (0–1)** for each order
-- Classifies orders into **Low / Medium / High Risk**
-- Highlights **key drivers of delay risk**
-- Provides an **operations action queue** for high-risk shipments
+## 🎯 Problem Statement
+Despite having large volumes of order and sales data, the organization lacked:
 
----
+- Visibility into **customer-level profitability**
+- Understanding of **discount-driven margin erosion**
+- Identification of **high-value vs low-value customers**
+- Insights into **loss-making products and regions**
 
-## 📊 Dashboard Features
-### Executive Overview
-- Total orders analyzed
-- ROC-AUC, Precision, Recall, F1 Score
-
-### Risk Analytics
-- Late delivery risk distribution
-- Region-wise delay risk
-- Shipping mode risk comparison
-
-### Operations Panel
-- High-risk order list (priority queue)
-- Risk threshold adjustment
-- Filters by region, market, shipping mode, and customer segment
-
-### Explainability
-- Feature importance from Logistic Regression
-- Transparent and interpretable risk drivers
-
----
-
-## 🧪 Data Science Methodology
-### Data Preprocessing
-- Removed data leakage variables
-- Dropped high-cardinality identifiers
-- Encoded categorical variables (One-Hot Encoding)
-- Scaled numerical features
-- Handled class imbalance using class weights
-
-### Feature Engineering
-- Shipping Pressure Index
-- Regional Delay Risk Score
-- Express Shipping Flag
-- Order Complexity Score
-
-### Modeling
-- Logistic Regression (baseline, interpretable)
-- Stratified train-test split
-- Evaluation using ROC-AUC, Precision, Recall, F1 Score, Confusion Matrix
+This project addresses these gaps by shifting focus from **revenue to profit intelligence**.
 
 ---
 
 ## 🛠️ Tech Stack
-- Python
-- Pandas, NumPy
-- Scikit-learn
-- Plotly
-- Streamlit
+- **Python**
+- **Pandas, NumPy** – Data processing
+- **Plotly** – Data visualization
+- **Streamlit** – Interactive dashboard
 
 ---
 
-## 📁 Project Structure
-```
-├── app.py
-├── APL_Logistics.csv
-├── APL_Logo.png
-├── unified logo.png
-├── favicon.jfif
-├── README.md
-```
+## 📂 Key Features
+
+### 📊 Executive Overview
+- Total Revenue
+- Total Profit
+- Profit Margin (%)
+- Average Discount
 
 ---
 
-## ▶️ How to Run Locally
-1. Create a virtual environment (recommended)
-2. Install dependencies:
+### 🧍 Customer Analytics
+- Customer profitability analysis
+- Top & loss-making customers
+- 🔥 **Customer Value Index (CVI)**
+- 🔥 **Pareto Analysis (Top 20% customers contribution)**
+
+---
+
+### 📦 Product & Category Analysis
+- Revenue vs Profit comparison
+- Category-level performance
+- 🔥 **Category Margin Heatmap**
+
+---
+
+### 💸 Discount Impact Analysis
+- Discount vs Profit Margin relationship
+- Identification of margin erosion zones
+
+---
+
+### 🌍 Regional Analysis
+- Profit distribution across regions
+- Identification of underperforming markets
+
+---
+
+### 🎛️ Interactive Filters
+- Customer Segment
+- Product Category
+- Market & Region
+- Discount Threshold
+- Profitability filter
+
+---
+
+## 📈 Key Metrics
+
+| KPI | Description |
+|----|------------|
+| Total Revenue | Overall sales generated |
+| Total Profit | Net profit across orders |
+| Profit Margin | Profit as % of sales |
+| Customer Value Index | Profit contribution per customer |
+| Category Margin | Profitability by category |
+| Discount Impact | Effect of discount on margin |
+
+---
+
+## 🔥 Key Insights (Example)
+- Top 20% customers contribute majority of total profit  
+- High discounts significantly reduce profit margins  
+- Certain categories generate high revenue but low profit  
+- Some regions are revenue-heavy but profit-negative  
+
+---
+
+## 🚀 How to Run the Project
+
 ```bash
-pip install streamlit pandas numpy scikit-learn plotly
-```
-3. Run the application:
-```bash
+pip install -r requirements.txt
 streamlit run app.py
-```
-
----
-
-## 🚀 Business Impact
-- Enables proactive rerouting and prioritization
-- Reduces SLA breaches and last-minute costs
-- Improves customer communication
-- Builds trust through explainable AI
-
----
-
-## 📌 Disclaimer
-This system provides **decision-support intelligence**.  
-Final operational decisions should incorporate human expertise and contextual judgment.
-
----
-
-## 👤 Credits
-**Mentor:** Sai Prasad Kagne  
-**Created by:** Vidit Kapoor  
-
----
-
-## 📄 License
-This project is developed for academic and internship evaluation purposes.
