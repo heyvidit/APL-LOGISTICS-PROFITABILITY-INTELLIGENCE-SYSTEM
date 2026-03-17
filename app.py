@@ -181,13 +181,13 @@ st.subheader("🔥 Pareto Analysis (Top Customers)")
 # Sort customers
 customer = customer.sort_values("Order Profit Per Order", ascending=False)
 
-# Compute cumulative %
+# Cumulative %
 customer["Cumulative %"] = (
     customer["Order Profit Per Order"].cumsum() /
     customer["Order Profit Per Order"].sum()
 )
 
-# Take top 15 for clarity
+# Top 15 for clarity
 top_n = customer.head(15)
 
 fig_pareto = px.bar(
@@ -206,20 +206,18 @@ fig_pareto.add_scatter(
     yaxis="y2"
 )
 
-# Fix axis
+# Layout fix
 fig_pareto.update_layout(
     yaxis2=dict(
         overlaying="y",
         side="right",
-        range=[0,1]   # 🔥 IMPORTANT
+        range=[0, 1]
     ),
     xaxis_tickangle=-45
 )
 
+# ✅ SAME indentation level
 st.plotly_chart(fig_pareto, use_container_width=True)
-
-    st.plotly_chart(fig_pareto)
-
 # ---------------------------------------------------------
 # PRODUCTS TAB
 # ---------------------------------------------------------
