@@ -187,21 +187,21 @@ with tab2:
     st.subheader("🔥 Pareto Analysis (Top Customers)")
 
 # Sort customers
-customer = customer.sort_values("Order Profit Per Order", ascending=False)
+    customer = customer.sort_values("Order Profit Per Order", ascending=False)
 
 # Cumulative %
-customer["Cumulative %"] = (
+    customer["Cumulative %"] = (
     customer["Order Profit Per Order"].cumsum() /
     customer["Order Profit Per Order"].sum()
 )
 
 # Top 15
-top_n = customer.head(15).copy()
+    top_n = customer.head(15).copy()
 
 # 🔥 FIX: Convert to string (for proper bars)
-top_n["Customer Id"] = top_n["Customer Id"].astype(str)
+    top_n["Customer Id"] = top_n["Customer Id"].astype(str)
 
-fig_pareto = px.bar(
+    fig_pareto = px.bar(
     top_n,
     x="Customer Id",
     y="Order Profit Per Order",
@@ -209,7 +209,7 @@ fig_pareto = px.bar(
 )
 
 # Cumulative line
-fig_pareto.add_scatter(
+    fig_pareto.add_scatter(
     x=top_n["Customer Id"],
     y=top_n["Cumulative %"],
     mode="lines+markers",
@@ -217,7 +217,7 @@ fig_pareto.add_scatter(
     yaxis="y2"
 )
 
-fig_pareto.update_layout(
+    fig_pareto.update_layout(
     yaxis2=dict(
         overlaying="y",
         side="right",
@@ -226,7 +226,7 @@ fig_pareto.update_layout(
     xaxis_tickangle=-45
 )
 
-st.plotly_chart(fig_pareto, use_container_width=True)
+    st.plotly_chart(fig_pareto, use_container_width=True)
 # ---------------------------------------------------------
 # PRODUCTS TAB
 # ---------------------------------------------------------
