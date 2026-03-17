@@ -187,15 +187,15 @@ with tab2:
 # ---------------------------------------------------------
 # 🔥 PARETO ANALYSIS (FINAL CLEAN VERSION)
 # ---------------------------------------------------------
-    st.subheader("🔥 Pareto Analysis (Top 30 Customers)")
+     st.subheader("🔥 Pareto Analysis (Top 30 Customers)")
 
 # STEP 1: Aggregate profit per customer
-    customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
+     customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
 
 # STEP 2: Sort descending
     customer_pareto = customer_pareto.sort_values(
     "Order Profit Per Order", ascending=False
-).reset_index(drop=True)
+    ).reset_index(drop=True)
 
 # STEP 3: Take Top 30 customers
     top_n = customer_pareto.head(40).copy()
@@ -239,21 +239,21 @@ with tab2:
 )
 
 # Layout
-        fig_pareto.update_layout(
-        yaxis2=dict(
-        overlaying="y",
-        side="right",
-        range=[0, 1],
-        tickformat=".0%"
+   fig_pareto.update_layout(
+   yaxis2=dict(
+   overlaying="y",
+   side="right",
+   range=[0, 1],
+   tickformat=".0%"
     ),
-        xaxis=dict(
-        type="category",
-        showticklabels=False  # cleaner look
+   xaxis=dict(
+   type="category",
+   showticklabels=False  # cleaner look
     ),
-         title="Pareto Analysis: Customer Profit Contribution"
+   title="Pareto Analysis: Customer Profit Contribution"
 )
 
-         st.plotly_chart(fig_pareto, use_container_width=True)
+   st.plotly_chart(fig_pareto, use_container_width=True)
 # ---------------------------------------------------------
 # PRODUCTS TAB
 # ---------------------------------------------------------
