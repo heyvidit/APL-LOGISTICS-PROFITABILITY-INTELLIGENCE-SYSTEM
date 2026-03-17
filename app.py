@@ -5,6 +5,10 @@
 # Author: Vidit Kapoor
 # =========================================================
 
+# =========================================================
+# APL LOGISTICS – PROFITABILITY INTELLIGENCE SYSTEM
+# =========================================================
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -28,7 +32,7 @@ DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 
-PRIMARY_COLOR = "#2A82E9"  # 🔥 Updated Color
+PRIMARY_COLOR = "#2A82E9"
 
 CHART_BG = "#161B22"
 GRID_COLOR = "#2F3542"
@@ -144,15 +148,17 @@ with tab1:
     kpi(c4, "Avg Discount", f"{avg_discount:.2f}")
 
 # ---------------------------------------------------------
-# STYLE FUNCTION
+# STYLE FUNCTION (UPDATED → TRANSPARENT)
 # ---------------------------------------------------------
 def style(fig, title):
     fig.update_layout(
         title=dict(text=title, font=dict(size=20, color=TEXT_COLOR)),
-        plot_bgcolor=CHART_BG,
-        paper_bgcolor=CHART_BG,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color=TEXT_COLOR)
     )
+    fig.update_xaxes(showgrid=True, gridcolor="#E5E7EB33")
+    fig.update_yaxes(showgrid=True, gridcolor="#E5E7EB33")
     return fig
 
 # ---------------------------------------------------------
@@ -182,6 +188,11 @@ with tab3:
         cat.set_index("Category Name")[["Margin"]],
         color_continuous_scale="Blues",
         aspect="auto"
+    )
+
+    heatmap.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)"
     )
 
     st.plotly_chart(heatmap, use_container_width=True)
@@ -240,7 +251,9 @@ with tab2:
     )
 
     fig_pareto.update_layout(
-        yaxis2=dict(overlaying="y", side="right")
+        yaxis2=dict(overlaying="y", side="right"),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)"
     )
 
     st.plotly_chart(fig_pareto, use_container_width=True)
