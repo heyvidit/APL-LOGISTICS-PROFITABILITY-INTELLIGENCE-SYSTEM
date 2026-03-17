@@ -249,25 +249,42 @@ with tab2:
     contribution = top_20["Order Profit Per Order"].sum() / customer["Order Profit Per Order"].sum()
 
     st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
-
 # ---------------------------------------------------------
 # DISCOUNT TAB
 # ---------------------------------------------------------
-
 with tab4:
+
+    # -------------------------------
+    # 1️⃣ SCATTER PLOT (KEEP THIS)
+    # -------------------------------
+    st.subheader("💸 Discount vs Profit Margin")
+
+    fig4 = px.scatter(
+        df,
+        x="Order Item Discount Rate",
+        y="Profit Margin",
+        opacity=0.5,
+        color_discrete_sequence=[PRIMARY_COLOR]
+    )
+
+    st.plotly_chart(
+        style(fig4, "Discount vs Profit Margin"),
+        use_container_width=True
+    )
+
+    # -------------------------------
+    # 2️⃣ THRESHOLD ANALYSIS (NEW)
+    # -------------------------------
     st.subheader("📊 Discount Threshold Analysis")
 
-    # Create bins (FIXED)
     df["Discount Bin"] = pd.cut(
         df["Order Item Discount Rate"], bins=5
     ).astype(str)
 
-    # Group analysis
     discount_analysis = df.groupby("Discount Bin").agg({
         "Profit Margin": "mean"
     }).reset_index()
 
-    # Bar chart
     fig_discount = px.bar(
         discount_analysis,
         x="Discount Bin",
@@ -280,9 +297,9 @@ with tab4:
         use_container_width=True
     )
 
-    # ---------------------------------------------------------
-    # 🔥 THRESHOLD DETECTION
-    # ---------------------------------------------------------
+    # -------------------------------
+    # 3️⃣ THRESHOLD INSIGHT
+    # -------------------------------
     negative_bins = discount_analysis[discount_analysis["Profit Margin"] < 0]
 
     if not negative_bins.empty:
