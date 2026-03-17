@@ -28,10 +28,7 @@ DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 
-PRIMARY_COLOR = "#2A82E9"  # 🔥 Updated Color
-
-CHART_BG = "#161B22"
-GRID_COLOR = "#2F3542"
+PRIMARY_COLOR = "#2A82E9"
 TEXT_COLOR = "#E5E7EB"
 
 # ---------------------------------------------------------
@@ -65,20 +62,22 @@ def render_header():
 render_header()
 
 # ---------------------------------------------------------
-# LOAD DATA
+# LOAD DATA + VALIDATION
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
     df = pd.read_csv(DATA_PATH, encoding="latin1")
     df = df.sample(min(len(df), 50000), random_state=42)
+
+    original_rows = len(df)
     df = df[df["Sales"] > 0]
+    cleaned_rows = original_rows - len(df)
 
     df["Profit Margin"] = df["Order Profit Per Order"] / df["Sales"]
-    df["Discount Impact"] = df["Order Item Discount"] / df["Sales"]
 
-    return df
+    return df, cleaned_rows
 
-df = load_data()
+df, cleaned_rows = load_data()
 
 # ---------------------------------------------------------
 # SIDEBAR
@@ -111,6 +110,18 @@ elif profit_filter == "Loss-Making Only":
     df = df[df["Order Profit Per Order"] < 0]
 
 # ---------------------------------------------------------
+# STYLE FUNCTION (TRANSPARENT)
+# ---------------------------------------------------------
+def style(fig, title):
+    fig.update_layout(
+        title=dict(text=title, font=dict(size=20, color=TEXT_COLOR)),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=TEXT_COLOR)
+    )
+    return fig
+
+# ---------------------------------------------------------
 # TABS
 # ---------------------------------------------------------
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -118,7 +129,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 # ---------------------------------------------------------
-# KPI SECTION
+# OVERVIEW TAB
 # ---------------------------------------------------------
 with tab1:
     total_sales = df["Sales"].sum()
@@ -126,65 +137,16 @@ with tab1:
     profit_margin = (total_profit / total_sales) * 100
     avg_discount = df["Order Item Discount Rate"].mean()
 
+    st.info(f"Data Validation: Removed {cleaned_rows} invalid records")
+
     st.subheader("📊 Executive Financial Overview")
 
     c1, c2, c3, c4 = st.columns(4)
 
-    def kpi(col, title, value):
-        col.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-title">{title}</div>
-            <div class="kpi-value">{value}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    kpi(c1, "Total Revenue", f"${total_sales:,.0f}")
-    kpi(c2, "Total Profit", f"${total_profit:,.0f}")
-    kpi(c3, "Profit Margin", f"{profit_margin:.2f}%")
-    kpi(c4, "Avg Discount", f"{avg_discount:.2f}")
-
-# ---------------------------------------------------------
-# STYLE FUNCTION
-# ---------------------------------------------------------
-def style(fig, title):
-    fig.update_layout(
-        title=dict(text=title, font=dict(size=20, color=TEXT_COLOR)),
-        plot_bgcolor=CHART_BG,
-        paper_bgcolor=CHART_BG,
-        font=dict(color=TEXT_COLOR)
-    )
-    return fig
-
-# ---------------------------------------------------------
-# PRODUCTS TAB
-# ---------------------------------------------------------
-with tab3:
-    st.subheader("📦 Revenue vs Profit by Category")
-
-    cat = df.groupby("Category Name").agg({
-        "Sales": "sum",
-        "Order Profit Per Order": "sum"
-    }).reset_index()
-
-    fig1 = px.bar(cat, x="Category Name", y="Sales",
-                  color_discrete_sequence=[PRIMARY_COLOR])
-
-    fig2 = px.bar(cat, x="Category Name", y="Order Profit Per Order",
-                  color_discrete_sequence=[PRIMARY_COLOR])
-
-    st.plotly_chart(style(fig1, "Revenue by Category"))
-    st.plotly_chart(style(fig2, "Profit by Category"))
-
-    st.subheader("🔥 Category Margin Heatmap")
-    cat["Margin"] = cat["Order Profit Per Order"] / cat["Sales"]
-
-    heatmap = px.imshow(
-        cat.set_index("Category Name")[["Margin"]],
-        color_continuous_scale="Blues",
-        aspect="auto"
-    )
-
-    st.plotly_chart(heatmap, use_container_width=True)
+    c1.metric("Revenue", f"${total_sales:,.0f}")
+    c2.metric("Profit", f"${total_profit:,.0f}")
+    c3.metric("Margin", f"{profit_margin:.2f}%")
+    c4.metric("Avg Discount", f"{avg_discount:.2f}")
 
 # ---------------------------------------------------------
 # CUSTOMERS TAB
@@ -200,9 +162,7 @@ with tab2:
     total_customer_profit = customer["Order Profit Per Order"].sum()
     customer["Customer Value Index"] = customer["Order Profit Per Order"] / total_customer_profit
 
-    fig3 = px.scatter(customer,
-                      x="Sales",
-                      y="Order Profit Per Order",
+    fig3 = px.scatter(customer, x="Sales", y="Order Profit Per Order",
                       color_discrete_sequence=[PRIMARY_COLOR])
 
     st.plotly_chart(style(fig3, "Customer Value Distribution"))
@@ -214,117 +174,107 @@ with tab2:
     st.dataframe(customer[customer["Order Profit Per Order"] < 0].head(10))
 
     st.subheader("💎 Highest Value Customers (CVI)")
-    st.dataframe(
-        customer.sort_values("Customer Value Index", ascending=False).head(10),
-        use_container_width=True
-    )
+    st.dataframe(customer.sort_values("Customer Value Index", ascending=False).head(10))
 
-    st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
+    st.subheader("🔥 Pareto Analysis")
 
     customer = customer.sort_values("Order Profit Per Order", ascending=False)
     customer["Cumulative %"] = customer["Order Profit Per Order"].cumsum() / customer["Order Profit Per Order"].sum()
 
     top_n = customer.head(20)
 
-    fig_pareto = px.bar(top_n,
-                        x="Customer Id",
-                        y="Order Profit Per Order",
+    fig_pareto = px.bar(top_n, x="Customer Id", y="Order Profit Per Order",
                         color_discrete_sequence=[PRIMARY_COLOR])
 
     fig_pareto.add_scatter(
         x=top_n["Customer Id"],
         y=top_n["Cumulative %"],
         mode="lines+markers",
-        name="Cumulative %",
         yaxis="y2"
     )
 
-    fig_pareto.update_layout(
-        yaxis2=dict(overlaying="y", side="right")
-    )
+    fig_pareto.update_layout(yaxis2=dict(overlaying="y", side="right"))
 
-    st.plotly_chart(fig_pareto, use_container_width=True)
+    st.plotly_chart(fig_pareto)
 
-    top_20 = customer.head(int(len(customer)*0.2))
-    contribution = top_20["Order Profit Per Order"].sum() / customer["Order Profit Per Order"].sum()
+# ---------------------------------------------------------
+# PRODUCTS TAB
+# ---------------------------------------------------------
+with tab3:
+    st.subheader("📦 Revenue vs Profit by Category")
 
-    st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
+    cat = df.groupby("Category Name").agg({
+        "Sales": "sum",
+        "Order Profit Per Order": "sum"
+    }).reset_index()
+
+    fig1 = px.bar(cat, x="Category Name", y="Sales", color_discrete_sequence=[PRIMARY_COLOR])
+    fig2 = px.bar(cat, x="Category Name", y="Order Profit Per Order", color_discrete_sequence=[PRIMARY_COLOR])
+
+    st.plotly_chart(style(fig1, "Revenue by Category"))
+    st.plotly_chart(style(fig2, "Profit by Category"))
+
+    st.subheader("📦 Product-Level Profitability")
+
+    product = df.groupby("Product Name").agg({
+        "Sales": "sum",
+        "Order Profit Per Order": "sum"
+    }).reset_index()
+
+    product["Profit Margin"] = product["Order Profit Per Order"] / product["Sales"]
+
+    st.dataframe(product.sort_values("Order Profit Per Order", ascending=False).head(10))
+    st.dataframe(product[product["Order Profit Per Order"] < 0].head(10))
+
 # ---------------------------------------------------------
 # DISCOUNT TAB
 # ---------------------------------------------------------
 with tab4:
-
-    # -------------------------------
-    # 1️⃣ SCATTER PLOT (KEEP THIS)
-    # -------------------------------
     st.subheader("💸 Discount vs Profit Margin")
 
-    fig4 = px.scatter(
-        df,
-        x="Order Item Discount Rate",
-        y="Profit Margin",
-        opacity=0.5,
-        color_discrete_sequence=[PRIMARY_COLOR]
-    )
+    fig4 = px.scatter(df, x="Order Item Discount Rate", y="Profit Margin",
+                      color_discrete_sequence=[PRIMARY_COLOR])
 
-    st.plotly_chart(
-        style(fig4, "Discount vs Profit Margin"),
-        use_container_width=True
-    )
+    st.plotly_chart(style(fig4, "Discount Impact"))
 
-    # -------------------------------
-    # 2️⃣ THRESHOLD ANALYSIS (NEW)
-    # -------------------------------
-    st.subheader("📊 Discount Threshold Analysis")
+    st.subheader("📊 Threshold Analysis")
 
-    df["Discount Bin"] = pd.cut(
-        df["Order Item Discount Rate"], bins=5
-    ).astype(str)
+    df["Discount Bin"] = pd.cut(df["Order Item Discount Rate"], bins=5).astype(str)
 
-    discount_analysis = df.groupby("Discount Bin").agg({
-        "Profit Margin": "mean"
-    }).reset_index()
+    analysis = df.groupby("Discount Bin")["Profit Margin"].mean().reset_index()
 
-    fig_discount = px.bar(
-        discount_analysis,
-        x="Discount Bin",
-        y="Profit Margin",
-        color_discrete_sequence=[PRIMARY_COLOR]
-    )
+    fig_discount = px.bar(analysis, x="Discount Bin", y="Profit Margin",
+                          color_discrete_sequence=[PRIMARY_COLOR])
 
-    st.plotly_chart(
-        style(fig_discount, "Average Profit Margin by Discount Range"),
-        use_container_width=True
-    )
-
-    # -------------------------------
-    # 3️⃣ THRESHOLD INSIGHT
-    # -------------------------------
-    negative_bins = discount_analysis[discount_analysis["Profit Margin"] < 0]
-
-    if not negative_bins.empty:
-        threshold = negative_bins.iloc[0]["Discount Bin"]
-        st.error(f"⚠️ Profit starts turning negative in discount range: {threshold}")
-    else:
-        st.success("✅ No negative margin detected across discount ranges")
+    st.plotly_chart(style(fig_discount, "Threshold"))
 
 # ---------------------------------------------------------
 # REGION TAB
 # ---------------------------------------------------------
 with tab5:
-    st.subheader("🌍 Profit by Region")
+    st.subheader("🌍 Region Analysis")
 
-    region_df = df.groupby("Order Region").agg({
+    region = df.groupby("Order Region").agg({
         "Sales": "sum",
         "Order Profit Per Order": "sum"
     }).reset_index()
 
-    fig5 = px.bar(region_df,
-                  x="Order Region",
-                  y="Order Profit Per Order",
-                  color_discrete_sequence=[PRIMARY_COLOR])
+    fig = px.bar(region, x="Order Region", y=["Sales", "Order Profit Per Order"],
+                 barmode="group")
 
-    st.plotly_chart(style(fig5, "Profit by Region"))
+    st.plotly_chart(style(fig, "Region Performance"))
+
+    st.subheader("🌎 Market Analysis")
+
+    market = df.groupby("Market").agg({
+        "Sales": "sum",
+        "Order Profit Per Order": "sum"
+    }).reset_index()
+
+    fig2 = px.bar(market, x="Market", y=["Sales", "Order Profit Per Order"],
+                  barmode="group")
+
+    st.plotly_chart(style(fig2, "Market Performance"))
 
 # ---------------------------------------------------------
 # EXECUTIVE SUMMARY
@@ -373,8 +323,9 @@ with tab1:
     </div>
     """, unsafe_allow_html=True)
 
+
 # ---------------------------------------------------------
-# FOOTER (UNCHANGED)
+# FOOTER
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
