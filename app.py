@@ -204,9 +204,10 @@ with tab2:
     customer_pareto["Order Profit Per Order"].cumsum() / total_profit_sum
 )
 
-# STEP 4: Top 15
-    top_n = customer_pareto.head(15).copy()
-    top_n["Customer Id"] = top_n["Customer Id"].astype(str)
+    top_20 = customer_pareto.head(int(len(customer_pareto)*0.2))
+    contribution = top_20["Order Profit Per Order"].sum() / total_profit_sum
+
+    st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
 
 # STEP 5: Plot
     fig_pareto = px.bar(
@@ -230,7 +231,8 @@ with tab2:
     yaxis2=dict(
         overlaying="y",
         side="right",
-        range=[0, 1]
+        range=[0, 1],
+        tickformat=".0%"
     ),
     xaxis=dict(type="category"),
     xaxis_tickangle=-45
