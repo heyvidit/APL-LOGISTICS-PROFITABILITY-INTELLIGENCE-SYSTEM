@@ -5,6 +5,10 @@
 # Author: Vidit Kapoor
 # =========================================================
 
+# =========================================================
+# APL LOGISTICS – PROFITABILITY INTELLIGENCE SYSTEM
+# =========================================================
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -110,14 +114,14 @@ elif profit_filter == "Loss-Making Only":
     df = df[df["Order Profit Per Order"] < 0]
 
 # ---------------------------------------------------------
-# 🔥 ADD TABS (NEW)
+# TABS
 # ---------------------------------------------------------
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Overview", "Customers", "Products", "Discounts", "Regions"
 ])
 
 # ---------------------------------------------------------
-# KPI SECTION (Overview Tab)
+# KPI SECTION
 # ---------------------------------------------------------
 with tab1:
     total_sales = df["Sales"].sum()
@@ -155,7 +159,7 @@ def style(fig, title):
     return fig
 
 # ---------------------------------------------------------
-# CATEGORY ANALYSIS (Products Tab)
+# PRODUCTS TAB
 # ---------------------------------------------------------
 with tab3:
     st.subheader("📦 Revenue vs Profit by Category")
@@ -171,7 +175,6 @@ with tab3:
     st.plotly_chart(style(fig1, "Revenue by Category"))
     st.plotly_chart(style(fig2, "Profit by Category"))
 
-    # 🔥 HEATMAP ADDED
     st.subheader("🔥 Category Margin Heatmap")
     cat["Margin"] = cat["Order Profit Per Order"] / cat["Sales"]
 
@@ -184,7 +187,7 @@ with tab3:
     st.plotly_chart(heatmap, use_container_width=True)
 
 # ---------------------------------------------------------
-# CUSTOMER ANALYSIS (Customers Tab)
+# CUSTOMERS TAB
 # ---------------------------------------------------------
 with tab2:
     st.subheader("🧍 Customer Profitability")
@@ -193,6 +196,10 @@ with tab2:
         "Sales": "sum",
         "Order Profit Per Order": "sum"
     }).reset_index()
+
+    # 🔥 CVI ADDED
+    total_customer_profit = customer["Order Profit Per Order"].sum()
+    customer["Customer Value Index"] = customer["Order Profit Per Order"] / total_customer_profit
 
     fig3 = px.scatter(customer, x="Sales", y="Order Profit Per Order")
     st.plotly_chart(style(fig3, "Customer Value Distribution"))
@@ -203,53 +210,41 @@ with tab2:
     st.subheader("⚠️ Loss-Making Customers")
     st.dataframe(customer[customer["Order Profit Per Order"] < 0].head(10))
 
-   # 🔥 PARETO ANALYSIS (CORRECT VERSION)
-st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
-
-customer = customer.sort_values("Order Profit Per Order", ascending=False)
-
-# Cumulative %
-customer["Cumulative %"] = (
-    customer["Order Profit Per Order"].cumsum() /
-    customer["Order Profit Per Order"].sum()
-)
-
-# Take top 20 customers for visualization clarity
-top_n = customer.head(20)
-
-fig_pareto = px.bar(
-    top_n,
-    x="Customer Id",
-    y="Order Profit Per Order",
-    title="Pareto Chart (Top Customers Profit Contribution)"
-)
-
-# Add cumulative line
-fig_pareto.add_scatter(
-    x=top_n["Customer Id"],
-    y=top_n["Cumulative %"],
-    mode="lines+markers",
-    name="Cumulative %",
-    yaxis="y2"
-)
-
-# Secondary axis
-fig_pareto.update_layout(
-    yaxis2=dict(
-        title="Cumulative %",
-        overlaying="y",
-        side="right",
-        showgrid=False
+    # 🔥 CVI TABLE
+    st.subheader("💎 Highest Value Customers (CVI)")
+    st.dataframe(
+        customer.sort_values("Customer Value Index", ascending=False).head(10),
+        use_container_width=True
     )
-)
 
-st.plotly_chart(fig_pareto, use_container_width=True)
+    # 🔥 PARETO
+    st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
 
-# Contribution text
-top_20 = customer.head(int(len(customer)*0.2))
-contribution = top_20["Order Profit Per Order"].sum() / customer["Order Profit Per Order"].sum()
+    customer = customer.sort_values("Order Profit Per Order", ascending=False)
+    customer["Cumulative %"] = customer["Order Profit Per Order"].cumsum() / customer["Order Profit Per Order"].sum()
 
-st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
+    top_n = customer.head(20)
+
+    fig_pareto = px.bar(top_n, x="Customer Id", y="Order Profit Per Order")
+
+    fig_pareto.add_scatter(
+        x=top_n["Customer Id"],
+        y=top_n["Cumulative %"],
+        mode="lines+markers",
+        name="Cumulative %",
+        yaxis="y2"
+    )
+
+    fig_pareto.update_layout(
+        yaxis2=dict(overlaying="y", side="right")
+    )
+
+    st.plotly_chart(fig_pareto, use_container_width=True)
+
+    top_20 = customer.head(int(len(customer)*0.2))
+    contribution = top_20["Order Profit Per Order"].sum() / customer["Order Profit Per Order"].sum()
+
+    st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
 
 # ---------------------------------------------------------
 # DISCOUNT TAB
@@ -279,7 +274,7 @@ with tab5:
     st.plotly_chart(style(fig5, "Profit by Region"))
 
 # ---------------------------------------------------------
-# EXECUTIVE SUMMARY (Overview Tab)
+# EXECUTIVE SUMMARY
 # ---------------------------------------------------------
 with tab1:
     st.markdown(f"""
@@ -292,6 +287,23 @@ with tab1:
     </p>
     </div>
     """, unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# FOOTER
+# ---------------------------------------------------------
+def render_footer():
+    if not UNIFIED_LOGO_PATH.exists():
+        return
+    encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
+    st.markdown(f"""
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:25px 40px;background:#0E1117;color:white;">
+        <span>Mentored by Sai Prasad Kagne</span>
+        <span>Created by Vidit Kapoor</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+render_footer()
 # ---------------------------------------------------------
 # FOOTER (UNCHANGED)
 # ---------------------------------------------------------
