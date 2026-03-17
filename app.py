@@ -1,3 +1,10 @@
+# =========================================================
+# APL LOGISTICS – PROFITABILITY INTELLIGENCE SYSTEM
+# Internship: Unified Mentor Pvt. Ltd.
+# Project: Customer & Product Profitability Analytics
+# Author: Vidit Kapoor
+# =========================================================
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -196,19 +203,53 @@ with tab2:
     st.subheader("⚠️ Loss-Making Customers")
     st.dataframe(customer[customer["Order Profit Per Order"] < 0].head(10))
 
-    # 🔥 PARETO ADDED
-    st.subheader("🔥 Pareto Analysis (Top 20%)")
+   # 🔥 PARETO ANALYSIS (CORRECT VERSION)
+st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
 
-    customer = customer.sort_values("Order Profit Per Order", ascending=False)
-    customer["Cumulative %"] = customer["Order Profit Per Order"].cumsum() / customer["Order Profit Per Order"].sum()
+customer = customer.sort_values("Order Profit Per Order", ascending=False)
 
-    fig_pareto = px.line(customer, y="Cumulative %")
-    st.plotly_chart(fig_pareto)
+# Cumulative %
+customer["Cumulative %"] = (
+    customer["Order Profit Per Order"].cumsum() /
+    customer["Order Profit Per Order"].sum()
+)
 
-    top_20 = customer.head(int(len(customer)*0.2))
-    contribution = top_20["Order Profit Per Order"].sum() / customer["Order Profit Per Order"].sum()
+# Take top 20 customers for visualization clarity
+top_n = customer.head(20)
 
-    st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
+fig_pareto = px.bar(
+    top_n,
+    x="Customer Id",
+    y="Order Profit Per Order",
+    title="Pareto Chart (Top Customers Profit Contribution)"
+)
+
+# Add cumulative line
+fig_pareto.add_scatter(
+    x=top_n["Customer Id"],
+    y=top_n["Cumulative %"],
+    mode="lines+markers",
+    name="Cumulative %",
+    yaxis="y2"
+)
+
+# Secondary axis
+fig_pareto.update_layout(
+    yaxis2=dict(
+        title="Cumulative %",
+        overlaying="y",
+        side="right",
+        showgrid=False
+    )
+)
+
+st.plotly_chart(fig_pareto, use_container_width=True)
+
+# Contribution text
+top_20 = customer.head(int(len(customer)*0.2))
+contribution = top_20["Order Profit Per Order"].sum() / customer["Order Profit Per Order"].sum()
+
+st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
 
 # ---------------------------------------------------------
 # DISCOUNT TAB
