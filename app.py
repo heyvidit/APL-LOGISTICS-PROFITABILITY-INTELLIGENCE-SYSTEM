@@ -139,16 +139,22 @@ with tab1:
     profit_margin = (total_profit / total_sales) * 100
     avg_discount = df["Order Item Discount Rate"].mean()
 
-    st.info(f"Data Validation: Removed {cleaned_rows} invalid records")
-
     st.subheader("📊 Executive Financial Overview")
 
     c1, c2, c3, c4 = st.columns(4)
 
-    c1.metric("Revenue", f"${total_sales:,.0f}")
-    c2.metric("Profit", f"${total_profit:,.0f}")
-    c3.metric("Margin", f"{profit_margin:.2f}%")
-    c4.metric("Avg Discount", f"{avg_discount:.2f}")
+    def kpi(col, title, value):
+        col.markdown(f"""
+        <div class="kpi-card">
+            <div class="kpi-title">{title}</div>
+            <div class="kpi-value">{value}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    kpi(c1, "Total Revenue", f"${total_sales:,.0f}")
+    kpi(c2, "Total Profit", f"${total_profit:,.0f}")
+    kpi(c3, "Profit Margin", f"{profit_margin:.2f}%")
+    kpi(c4, "Avg Discount", f"{avg_discount:.2f}")
 
 # ---------------------------------------------------------
 # CUSTOMERS TAB
