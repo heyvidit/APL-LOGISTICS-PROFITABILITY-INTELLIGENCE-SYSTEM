@@ -187,15 +187,14 @@ with tab2:
 # ---------------------------------------------------------
 # PARETO (FINAL CORRECT VERSION)
 # ---------------------------------------------------------
-    st.subheader("🔥 Pareto Analysis (Top Customers)")
-
-# STEP 1: Fresh aggregation (DO NOT reuse previous customer df)
+   st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
+   # STEP 1: Aggregate
     customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
 
 # STEP 2: Sort
     customer_pareto = customer_pareto.sort_values(
     "Order Profit Per Order", ascending=False
-)
+).reset_index(drop=True)
 
 # STEP 3: Cumulative %
     total_profit_sum = customer_pareto["Order Profit Per Order"].sum()
@@ -204,9 +203,11 @@ with tab2:
     customer_pareto["Order Profit Per Order"].cumsum() / total_profit_sum
 )
 
-    top_20 = customer_pareto.head(int(len(customer_pareto)*0.2))
-    contribution = top_20["Order Profit Per Order"].sum() / total_profit_sum
+# STEP 4: Take TOP 20% customers
+    top_n_count = int(len(customer_pareto) * 0.2)
+    top_n = customer_pareto.head(top_n_count)
 
+    contribution = top_n["Order Profit Per Order"].sum() / total_profit_sum
     st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
 
 # STEP 5: Plot
@@ -217,7 +218,7 @@ with tab2:
     color_discrete_sequence=[PRIMARY_COLOR]
 )
 
-# Line
+# Pareto line
     fig_pareto.add_scatter(
     x=top_n["Customer Id"],
     y=top_n["Cumulative %"],
