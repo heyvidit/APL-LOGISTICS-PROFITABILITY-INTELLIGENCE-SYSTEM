@@ -28,7 +28,7 @@ DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 
-PRIMARY_COLOR = "#2A82E9"
+PRIMARY_COLOR = "#2A82E9"  # 🔥 Updated Color
 CHART_BG = "#161B22"
 GRID_COLOR = "#2F3542"
 TEXT_COLOR = "#E5E7EB"
@@ -64,7 +64,7 @@ def render_header():
 render_header()
 
 # ---------------------------------------------------------
-# LOAD DATA + VALIDATION (ENHANCED)
+# LOAD DATA + VALIDATION
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
@@ -72,12 +72,7 @@ def load_data():
     df = df.sample(min(len(df), 50000), random_state=42)
 
     original_rows = len(df)
-
-    # Enhanced validation
     df = df[df["Sales"] > 0]
-    df = df[df["Order Item Quantity"] > 0]
-    df = df[df["Order Item Product Price"] > 0]
-
     cleaned_rows = original_rows - len(df)
 
     df["Profit Margin"] = df["Order Profit Per Order"] / df["Sales"]
@@ -117,7 +112,7 @@ elif profit_filter == "Loss-Making Only":
     df = df[df["Order Profit Per Order"] < 0]
 
 # ---------------------------------------------------------
-# STYLE FUNCTION
+# STYLE FUNCTION (TRANSPARENT)
 # ---------------------------------------------------------
 def style(fig, title):
     fig.update_layout(
@@ -162,7 +157,7 @@ with tab1:
     kpi(c4, "Avg Discount", f"{avg_discount:.2f}")
 
 # ---------------------------------------------------------
-# CUSTOMERS TAB (FULL + SEGMENT + PARETO)
+# CUSTOMERS TAB
 # ---------------------------------------------------------
 with tab2:
     st.subheader("🧍 Customer Profitability")
@@ -172,17 +167,11 @@ with tab2:
         "Order Profit Per Order": "sum"
     }).reset_index()
 
-    customer["Segment"] = pd.qcut(
-        customer["Order Profit Per Order"],
-        q=3,
-        labels=["Low Value", "Medium Value", "High Value"]
-    )
-
     total_customer_profit = customer["Order Profit Per Order"].sum()
     customer["Customer Value Index"] = customer["Order Profit Per Order"] / total_customer_profit
 
     fig3 = px.scatter(customer, x="Sales", y="Order Profit Per Order",
-                      color="Segment")
+                      color_discrete_sequence=[PRIMARY_COLOR])
 
     st.plotly_chart(style(fig3, "Customer Value Distribution"))
 
@@ -195,25 +184,75 @@ with tab2:
     st.subheader("💎 Highest Value Customers (CVI)")
     st.dataframe(customer.sort_values("Customer Value Index", ascending=False).head(10))
 
-    # PARETO
-    st.subheader("🔥 Pareto Analysis")
+    # ---------------------------------------------------------
+    # 🔥 PARETO ANALYSIS
+    # ---------------------------------------------------------
+    st.subheader("🔥 Pareto Analysis (Top 30 Customers)")
 
-    customer_pareto = customer.sort_values("Order Profit Per Order", ascending=False)
+    # STEP 1
+    customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
+
+    # STEP 2
+    customer_pareto = customer_pareto.sort_values(
+        "Order Profit Per Order", ascending=False
+    ).reset_index(drop=True)
+
+    # STEP 3
     top_n = customer_pareto.head(40).copy()
-    top_n["Cumulative %"] = top_n["Order Profit Per Order"].cumsum() / top_n["Order Profit Per Order"].sum()
 
-    fig_pareto = px.bar(top_n, x="Customer Id", y="Order Profit Per Order")
-    fig_pareto.add_scatter(x=top_n["Customer Id"], y=top_n["Cumulative %"],
-                           mode="lines+markers", yaxis="y2")
-
-    fig_pareto.update_layout(
-        yaxis2=dict(overlaying="y", side="right", range=[0,1], tickformat=".0%")
+    # STEP 4
+    top_n["Cumulative %"] = (
+        top_n["Order Profit Per Order"].cumsum() /
+        top_n["Order Profit Per Order"].sum()
     )
 
-    st.plotly_chart(fig_pareto)
+    # STEP 5
+    contribution = top_n["Order Profit Per Order"].sum() / customer_pareto["Order Profit Per Order"].sum()
 
+    st.success(f"Top 30 customers contribute {contribution*100:.2f}% of total profit")
+
+    # STEP 6
+    fig_pareto = px.bar(
+        top_n,
+        x="Customer Id",
+        y="Order Profit Per Order",
+        color_discrete_sequence=[PRIMARY_COLOR]
+    )
+
+    fig_pareto.add_scatter(
+        x=top_n["Customer Id"],
+        y=top_n["Cumulative %"],
+        mode="lines+markers",
+        name="Cumulative %",
+        yaxis="y2"
+    )
+
+    fig_pareto.add_hline(
+        y=0.8,
+        line_dash="dash",
+        line_color="red",
+        annotation_text="80% Threshold",
+        annotation_position="top right",
+        yref="y2"
+    )
+
+    fig_pareto.update_layout(
+        yaxis2=dict(
+            overlaying="y",
+            side="right",
+            range=[0, 1],
+            tickformat=".0%"
+        ),
+        xaxis=dict(
+            type="category",
+            showticklabels=False
+        ),
+        title="Pareto Analysis: Customer Profit Contribution"
+    )
+
+    st.plotly_chart(fig_pareto, use_container_width=True)
 # ---------------------------------------------------------
-# PRODUCTS TAB (FULL + HEATMAP + PARETO)
+# PRODUCTS TAB
 # ---------------------------------------------------------
 with tab3:
     st.subheader("📦 Revenue vs Profit by Category")
@@ -223,73 +262,101 @@ with tab3:
         "Order Profit Per Order": "sum"
     }).reset_index()
 
-    st.plotly_chart(style(px.bar(cat, x="Category Name", y="Sales"), "Revenue"))
-    st.plotly_chart(style(px.bar(cat, x="Category Name", y="Order Profit Per Order"), "Profit"))
+    fig1 = px.bar(cat, x="Category Name", y="Sales", color_discrete_sequence=[PRIMARY_COLOR])
+    fig2 = px.bar(cat, x="Category Name", y="Order Profit Per Order", color_discrete_sequence=[PRIMARY_COLOR])
 
-    # Heatmap
-    st.subheader("🔥 Category Heatmap")
-    pivot = df.pivot_table(values="Order Profit Per Order", index="Category Name", columns="Market", aggfunc="sum")
-    st.plotly_chart(style(px.imshow(pivot), "Heatmap"))
+    st.plotly_chart(style(fig1, "Revenue by Category"))
+    st.plotly_chart(style(fig2, "Profit by Category"))
 
-    # Product Pareto
-    st.subheader("🔥 Product Pareto")
-    product = df.groupby("Product Name")["Order Profit Per Order"].sum().reset_index()
-    product = product.sort_values("Order Profit Per Order", ascending=False)
-    product["Cumulative %"] = product["Order Profit Per Order"].cumsum() / product["Order Profit Per Order"].sum()
+    st.subheader("📦 Product-Level Profitability")
 
-    st.plotly_chart(px.line(product.head(50), x="Product Name", y="Cumulative %"))
+    product = df.groupby("Product Name").agg({
+        "Sales": "sum",
+        "Order Profit Per Order": "sum"
+    }).reset_index()
+
+    product["Profit Margin"] = product["Order Profit Per Order"] / product["Sales"]
+
+    st.dataframe(product.sort_values("Order Profit Per Order", ascending=False).head(10))
+    st.dataframe(product[product["Order Profit Per Order"] < 0].head(10))
 
 # ---------------------------------------------------------
-# DISCOUNT TAB (FULL + SIMULATOR)
+# DISCOUNT TAB
 # ---------------------------------------------------------
 with tab4:
     st.subheader("💸 Discount vs Profit Margin")
 
-    st.plotly_chart(style(px.scatter(df, x="Order Item Discount Rate", y="Profit Margin"), "Impact"))
+    fig4 = px.scatter(df, x="Order Item Discount Rate", y="Profit Margin",
+                      color_discrete_sequence=[PRIMARY_COLOR])
 
-    st.subheader("🧪 What-if Discount Simulator")
-    sim_discount = st.slider("Simulate Discount", 0.0, 0.5, 0.2)
+    st.plotly_chart(style(fig4, "Discount Impact"))
 
-    simulated_sales = df["Sales"] * (1 - sim_discount)
-    simulated_profit = simulated_sales * df["Profit Margin"]
+    st.subheader("📊 Discount Threshold Analysis")
 
-    st.metric("Simulated Profit", f"${simulated_profit.sum():,.0f}")
+    df["Discount Bin"] = pd.cut(
+        df["Order Item Discount Rate"], bins=5
+    ).astype(str)
+
+    discount_analysis = df.groupby("Discount Bin").agg({
+        "Profit Margin": "mean"
+    }).reset_index()
+
+    fig_discount = px.bar(
+        discount_analysis,
+        x="Discount Bin",
+        y="Profit Margin",
+        color_discrete_sequence=[PRIMARY_COLOR]
+    )
+
+    st.plotly_chart(
+        style(fig_discount, "Average Profit Margin by Discount Range"),
+        use_container_width=True
+    )
+
 
 # ---------------------------------------------------------
-# REGION TAB (FULL + INSIGHTS)
+# REGION TAB
 # ---------------------------------------------------------
 with tab5:
+    st.subheader("🌍 Region Analysis")
+
     region = df.groupby("Order Region").agg({
         "Sales": "sum",
         "Order Profit Per Order": "sum"
     }).reset_index()
 
-    st.plotly_chart(style(px.bar(region, x="Order Region", y=["Sales","Order Profit Per Order"], barmode="group"), "Region"))
+    fig = px.bar(region, x="Order Region", y=["Sales", "Order Profit Per Order"],
+                 barmode="group")
+
+    st.plotly_chart(style(fig, "Region Performance"))
+
+    st.subheader("🌎 Market Analysis")
 
     market = df.groupby("Market").agg({
         "Sales": "sum",
         "Order Profit Per Order": "sum"
     }).reset_index()
 
-    st.plotly_chart(style(px.bar(market, x="Market", y=["Sales","Order Profit Per Order"], barmode="group"), "Market"))
+    fig2 = px.bar(market, x="Market", y=["Sales", "Order Profit Per Order"],
+                  barmode="group")
 
-    best_market = market.sort_values("Order Profit Per Order", ascending=False).iloc[0]["Market"]
-    worst_market = market.sort_values("Order Profit Per Order").iloc[0]["Market"]
-
-    st.success(f"Best Market: {best_market}")
-    st.error(f"Worst Market: {worst_market}")
+    st.plotly_chart(style(fig2, "Market Performance"))
 
 # ---------------------------------------------------------
-# EXECUTIVE SUMMARY (UNCHANGED)
+# EXECUTIVE SUMMARY
 # ---------------------------------------------------------
 with tab1:
+
+    # 🔥 TOP CUSTOMER CONTRIBUTION
     customer_summary = df.groupby("Customer Id")["Order Profit Per Order"].sum().sort_values(ascending=False)
     top_20_pct = int(len(customer_summary) * 0.2)
     top_contribution = customer_summary.head(top_20_pct).sum() / customer_summary.sum() * 100
 
+    # 🔥 WORST CATEGORY
     cat_summary = df.groupby("Category Name")["Order Profit Per Order"].sum().reset_index()
     worst_category = cat_summary.sort_values("Order Profit Per Order").iloc[0]["Category Name"]
 
+    # 🔥 DISCOUNT IMPACT
     discount_bins = pd.cut(df["Order Item Discount Rate"], bins=5).astype(str)
     discount_analysis = df.groupby(discount_bins)["Profit Margin"].mean().reset_index()
 
@@ -298,19 +365,30 @@ with tab1:
     if not negative_bins.empty:
         discount_warning = f"Profit turns negative at discount range {negative_bins.iloc[0][0]}"
     else:
-        discount_warning = "No negative profit zones detected"
+        discount_warning = "No negative profit zones detected across discount ranges"
 
+    # 🔥 FINAL INSIGHT BOX
     st.markdown(f"""
     <div class="summary-box">
     <h3 style="color:white;">Executive Insights</h3>
     <p style="color:#D1D5DB; line-height:1.7;">
-    Revenue: <b>${total_sales:,.0f}</b> | Profit: <b>${total_profit:,.0f}</b> | Margin: <b>{profit_margin:.2f}%</b><br><br>
-    Top 20% customers contribute <b>{top_contribution:.1f}%</b> profit.<br><br>
-    Worst category: <b>{worst_category}</b><br><br>
-    {discount_warning}
+    Total revenue stands at <b>${total_sales:,.0f} </b> with a net profit of 
+    <b>${total_profit:,.0f} </b>, resulting in a profit margin of 
+    <b>{profit_margin:.2f}%</b>.
+    <br><br>
+    Customer analysis reveals that the top 20% of customers contribute 
+    approximately <b>{top_contribution:.1f}%</b> of total profit, indicating a strong 
+    concentration of value among a small customer segment.
+    <br><br>
+    Product-level analysis highlights <b>{worst_category}</b> as a low-performing category, 
+    contributing negatively to overall profitability.
+    <br><br>
+    Discount analysis shows that <b>{discount_warning}</b>, suggesting that aggressive 
+    discounting strategies may be eroding margins.    
     </p>
     </div>
     """, unsafe_allow_html=True)
+
 
 # ---------------------------------------------------------
 # FOOTER
