@@ -42,10 +42,10 @@ GAIN_COLOR = "#22C55E"
 st.markdown("""
 <style>
 section[data-testid="stSidebar"] {background-color:#0E1117;padding:18px;}
-.kpi-card {background:#161B22;border-radius:14px;padding:18px;text-align:center;margin-bottom:8px;}
-.kpi-title {color:#9CA3AF;font-size:13px;margin-bottom:4px;}
-.kpi-value {color:#EAEAEA;font-size:26px;font-weight:700;}
-.kpi-sub {color:#6B7280;font-size:12px;margin-top:4px;}
+.kpi-card {background:#161B22;border-radius:14px;padding:14px 10px;text-align:center;margin-bottom:8px;}
+.kpi-title {color:#9CA3AF;font-size:11px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi-value {color:#EAEAEA;font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi-sub {color:#6B7280;font-size:11px;margin-top:4px;}
 .chart-card {background:#161B22;padding:18px;border-radius:14px;margin-bottom:30px;}
 .summary-box {background:#111827;padding:24px;border-radius:14px;margin-top:30px;}
 .data-note {background:#1F2937;border-left:4px solid #2A82E9;padding:10px 16px;border-radius:6px;color:#9CA3AF;font-size:13px;margin-bottom:16px;}
@@ -170,12 +170,17 @@ with tab1:
         </div>
         """, unsafe_allow_html=True)
 
-    kpi(c1, "Total Revenue", f"${total_sales:,.0f}")
-    kpi(c2, "Total Profit", f"${total_profit:,.0f}")
+    def fmt_money(v):
+        if abs(v) >= 1_000_000: return f"${v/1_000_000:.2f}M"
+        if abs(v) >= 1_000: return f"${v/1_000:.1f}K"
+        return f"${v:,.0f}"
+
+    kpi(c1, "Total Revenue", fmt_money(total_sales))
+    kpi(c2, "Total Profit", fmt_money(total_profit))
     kpi(c3, "Profit Margin", f"{profit_margin:.2f}%")
-    kpi(c4, "Avg Discount Rate", f"{avg_discount:.2%}")
+    kpi(c4, "Avg Discount", f"{avg_discount:.2%}")
     kpi(c5, "Total Orders", f"{order_count:,}")
-    kpi(c6, "Avg Order Value", f"${avg_order_value:,.1f}")
+    kpi(c6, "Avg Order Value", fmt_money(avg_order_value))
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -200,38 +205,46 @@ with tab1:
         seg["Margin %"] = seg["Profit"] / seg["Revenue"] * 100
         fig_margin = px.bar(
             seg, x="Customer Segment", y="Margin %",
-            color="Margin %",
-            color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"]
+            color_discrete_sequence=["#1E6BBF"]   # single solid blue — no rainbow scale
         )
+        fig_margin.update_traces(marker_line_color="#2A82E9", marker_line_width=1.5)
         st.plotly_chart(style(fig_margin), use_container_width=True, key='chart_8')
 
-    # ── NEW: Profit concentration (top-N cumulative) ───────
+    # ── Profit concentration (top-N cumulative) ───────────
     st.markdown("#### Profit Concentration by Category")
     cat_conc = df.groupby("Category Name")["Order Profit Per Order"].sum().sort_values(ascending=False).reset_index()
     cat_conc["Cumulative %"] = cat_conc["Order Profit Per Order"].cumsum() / cat_conc["Order Profit Per Order"].sum() * 100
+    cat_conc["Rank"] = range(1, len(cat_conc) + 1)
 
     fig_conc = go.Figure()
     fig_conc.add_bar(
-        x=cat_conc["Category Name"],
+        x=cat_conc["Rank"],
         y=cat_conc["Order Profit Per Order"],
         name="Profit",
-        marker_color=PRIMARY_COLOR
+        marker_color=PRIMARY_COLOR,
+        customdata=cat_conc["Category Name"],
+        hovertemplate="<b>%{customdata}</b><br>Profit: $%{y:,.0f}<extra></extra>"
     )
     fig_conc.add_scatter(
-        x=cat_conc["Category Name"],
+        x=cat_conc["Rank"],
         y=cat_conc["Cumulative %"],
         mode="lines+markers",
         name="Cumulative %",
         yaxis="y2",
-        line=dict(color=GAIN_COLOR)
+        line=dict(color=GAIN_COLOR, width=2),
+        marker=dict(size=5),
+        hovertemplate="Cumulative: %{y:.1f}%<extra></extra>"
     )
     fig_conc.update_layout(
-        yaxis2=dict(overlaying="y", side="right", range=[0, 110], tickformat=".0f", title="Cumulative %"),
+        yaxis=dict(title="Profit ($)", gridcolor=GRID_COLOR),
+        yaxis2=dict(overlaying="y", side="right", range=[0, 110],
+                    tickformat=".0f", title="Cumulative %", gridcolor="rgba(0,0,0,0)"),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color=TEXT_COLOR),
-        xaxis=dict(tickangle=-30),
-        legend=dict(orientation="h", y=1.1)
+        xaxis=dict(title="Category Rank (hover bar for name)", gridcolor=GRID_COLOR),
+        legend=dict(orientation="h", y=1.08),
+        margin=dict(t=40, b=50)
     )
     st.plotly_chart(fig_conc, use_container_width=True, key='chart_1')
 
@@ -320,7 +333,7 @@ with tab2:
     fig3 = px.scatter(
         customer, x="Revenue", y="Profit",
         size="Orders", color="Profit",
-        color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"],
+        color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"],
         hover_data=["Customer Id", "Orders"]
     )
     st.plotly_chart(style(fig3), use_container_width=True, key='chart_10')
@@ -373,10 +386,14 @@ with tab2:
                           annotation_text="80% Threshold",
                           annotation_position="top right", yref="y2")
     fig_pareto.update_layout(
-        yaxis2=dict(overlaying="y", side="right", range=[0, 1.1], tickformat=".0%"),
-        xaxis=dict(type="category", showticklabels=False),
+        yaxis=dict(title="Profit ($)", gridcolor=GRID_COLOR),
+        yaxis2=dict(overlaying="y", side="right", range=[0, 1.1],
+                    tickformat=".0%", title="Cumulative %", gridcolor="rgba(0,0,0,0)"),
+        xaxis=dict(type="category", showticklabels=False,
+                   title="Customers ranked by profit (hover bar for Customer ID)"),
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=TEXT_COLOR), legend=dict(orientation="h", y=1.1)
+        font=dict(color=TEXT_COLOR), legend=dict(orientation="h", y=1.08),
+        margin=dict(t=40, b=60)
     )
     st.plotly_chart(fig_pareto, use_container_width=True, key='chart_3')
 
@@ -404,7 +421,7 @@ with tab3:
         fig2 = px.bar(cat.sort_values("Profit", ascending=True),
                       x="Profit", y="Category Name", orientation="h",
                       color="Profit",
-                      color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"])
+                      color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"])
         st.plotly_chart(style(fig2, 'Profit by Category'), use_container_width=True, key='chart_12')
 
     # ── NEW: Category Profitability Heatmap ───────────────
@@ -412,7 +429,7 @@ with tab3:
     pivot = df.groupby(["Category Name", "Market"])["Order Profit Per Order"].sum().unstack(fill_value=0)
     fig_heat = px.imshow(
         pivot,
-        color_continuous_scale=["#EF4444", "#111827", "#22C55E"],
+        color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"],
         aspect="auto",
         text_auto=".0f"
     )
@@ -456,10 +473,14 @@ with tab3:
     fig_bubble = px.scatter(
         top30, x="Revenue", y="Margin %", size="Orders",
         color="Margin %",
-        color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"],
-        hover_name="Product Name", text="Product Name"
+        color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"],
+        hover_name="Product Name",
+        hover_data={"Revenue": ":$,.0f", "Margin %": ":.1f", "Orders": True}
     )
-    fig_bubble.update_traces(textposition="top center", textfont_size=9)
+    # No inline text labels — hover shows full product name cleanly
+    fig_bubble.update_traces(
+        marker=dict(opacity=0.85, line=dict(width=1, color="#2A82E9"))
+    )
     st.plotly_chart(style(fig_bubble), use_container_width=True, key='chart_13')
 
 
@@ -475,7 +496,7 @@ with tab4:
             df.sample(min(5000, len(df)), random_state=1),
             x="Order Item Discount Rate", y="Profit Margin",
             color="Profit Margin",
-            color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"],
+            color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"],
             opacity=0.5
         )
         st.plotly_chart(style(fig4, 'Discount Rate vs Profit Margin'), use_container_width=True, key='chart_14')
@@ -489,7 +510,7 @@ with tab4:
         fig_disc = px.bar(
             discount_analysis, x="Discount Bin", y="Avg_Margin",
             color="Avg_Margin",
-            color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"]
+            color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"]
         )
         st.plotly_chart(style(fig_disc, 'Avg Margin by Discount Range'), use_container_width=True, key='chart_15')
 
@@ -607,7 +628,7 @@ with tab5:
     with col2:
         fig_r2 = px.bar(region.sort_values("Profit"), x="Profit", y="Order Region",
                         orientation="h", color="Profit",
-                        color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"])
+                        color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"])
         st.plotly_chart(style(fig_r2, 'Profit by Region'), use_container_width=True, key='chart_17')
 
     # ── Market bar ────────────────────────────────────────
@@ -627,7 +648,7 @@ with tab5:
         market.sort_values("Margin %"),
         x="Market", y="Margin %",
         color="Margin %",
-        color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"],
+        color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"],
         text_auto=".1f"
     )
     st.plotly_chart(style(fig_mmargin, 'Profit Margin % by Market'), use_container_width=True, key='chart_19')
@@ -647,7 +668,7 @@ with tab5:
         color="Profit",
         hover_name="Order Country",
         hover_data={"Revenue": ":,.0f", "Profit": ":,.0f", "Margin %": ":.1f"},
-        color_continuous_scale=["#EF4444", "#111827", "#22C55E"]
+        color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"]
     )
     fig_map.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
