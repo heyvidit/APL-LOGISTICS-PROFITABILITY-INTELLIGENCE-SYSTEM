@@ -355,29 +355,20 @@ with tab1:
     st.markdown(f"""
     <div class="summary-box">
     <h3 style="color:white;">Executive Insights</h3>
-
     <p style="color:#D1D5DB; line-height:1.7;">
-    
-    Total revenue stands at <b>${total_sales:,.0f}</b> with a net profit of 
-    <b>${total_profit:,.0f}</b>, resulting in a profit margin of 
+    Total revenue stands at <b>${total_sales:,.0f} </b> with a net profit of 
+    <b>${total_profit:,.0f} </b>, resulting in a profit margin of 
     <b>{profit_margin:.2f}%</b>.
-    
     <br><br>
-
     Customer analysis reveals that the top 20% of customers contribute 
     approximately <b>{top_contribution:.1f}%</b> of total profit, indicating a strong 
     concentration of value among a small customer segment.
-    
     <br><br>
-
     Product-level analysis highlights <b>{worst_category}</b> as a low-performing category, 
     contributing negatively to overall profitability.
-    
     <br><br>
-
     Discount analysis shows that <b>{discount_warning}</b>, suggesting that aggressive 
-    discounting strategies may be eroding margins.
-    
+    discounting strategies may be eroding margins.    
     </p>
     </div>
     """, unsafe_allow_html=True)
