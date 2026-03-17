@@ -5,10 +5,6 @@
 # Author: Vidit Kapoor
 # =========================================================
 
-# =========================================================
-# APL LOGISTICS – PROFITABILITY INTELLIGENCE SYSTEM
-# =========================================================
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -288,22 +284,6 @@ with tab1:
     </div>
     """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# FOOTER
-# ---------------------------------------------------------
-def render_footer():
-    if not UNIFIED_LOGO_PATH.exists():
-        return
-    encoded = base64.b64encode(UNIFIED_LOGO_PATH.read_bytes()).decode()
-    st.markdown(f"""
-    <div style="display:flex;justify-content:space-between;align-items:center;
-                padding:25px 40px;background:#0E1117;color:white;">
-        <span>Mentored by Sai Prasad Kagne</span>
-        <span>Created by Vidit Kapoor</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-render_footer()
 # ---------------------------------------------------------
 # FOOTER (UNCHANGED)
 # ---------------------------------------------------------
