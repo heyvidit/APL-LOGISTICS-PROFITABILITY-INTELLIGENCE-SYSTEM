@@ -330,13 +330,54 @@ with tab5:
 # EXECUTIVE SUMMARY
 # ---------------------------------------------------------
 with tab1:
+
+    # 🔥 TOP CUSTOMER CONTRIBUTION
+    customer_summary = df.groupby("Customer Id")["Order Profit Per Order"].sum().sort_values(ascending=False)
+    top_20_pct = int(len(customer_summary) * 0.2)
+    top_contribution = customer_summary.head(top_20_pct).sum() / customer_summary.sum() * 100
+
+    # 🔥 WORST CATEGORY
+    cat_summary = df.groupby("Category Name")["Order Profit Per Order"].sum().reset_index()
+    worst_category = cat_summary.sort_values("Order Profit Per Order").iloc[0]["Category Name"]
+
+    # 🔥 DISCOUNT IMPACT
+    discount_bins = pd.cut(df["Order Item Discount Rate"], bins=5).astype(str)
+    discount_analysis = df.groupby(discount_bins)["Profit Margin"].mean().reset_index()
+
+    negative_bins = discount_analysis[discount_analysis["Profit Margin"] < 0]
+
+    if not negative_bins.empty:
+        discount_warning = f"Profit turns negative at discount range {negative_bins.iloc[0][0]}"
+    else:
+        discount_warning = "No negative profit zones detected across discount ranges"
+
+    # 🔥 FINAL INSIGHT BOX
     st.markdown(f"""
     <div class="summary-box">
     <h3 style="color:white;">Executive Insights</h3>
-    <p style="color:#D1D5DB;">
-    Total revenue is <b>${total_sales:,.0f}</b> with profit of <b>${total_profit:,.0f}</b>.
-    Profit margin stands at <b>{profit_margin:.2f}%</b>.
-    Higher discounts are reducing profitability.
+
+    <p style="color:#D1D5DB; line-height:1.7;">
+    
+    Total revenue stands at <b>${total_sales:,.0f}</b> with a net profit of 
+    <b>${total_profit:,.0f}</b>, resulting in a profit margin of 
+    <b>{profit_margin:.2f}%</b>.
+    
+    <br><br>
+
+    Customer analysis reveals that the top 20% of customers contribute 
+    approximately <b>{top_contribution:.1f}%</b> of total profit, indicating a strong 
+    concentration of value among a small customer segment.
+    
+    <br><br>
+
+    Product-level analysis highlights <b>{worst_category}</b> as a low-performing category, 
+    contributing negatively to overall profitability.
+    
+    <br><br>
+
+    Discount analysis shows that <b>{discount_warning}</b>, suggesting that aggressive 
+    discounting strategies may be eroding margins.
+    
     </p>
     </div>
     """, unsafe_allow_html=True)
