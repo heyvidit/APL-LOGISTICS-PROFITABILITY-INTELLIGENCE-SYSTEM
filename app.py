@@ -118,27 +118,67 @@ def load_data():
 df = load_data()
 
 # ---------------------------------------------------------
-# SIDEBAR
+# SIDEBAR (UPDATED – PROFITABILITY FOCUSED)
 # ---------------------------------------------------------
-st.sidebar.header("🔎 Filters")
+st.sidebar.header("📊 Business Filters")
 
-ship_filter = st.sidebar.multiselect("Shipping Mode", df["Shipping Mode"].dropna().unique())
-market_filter = st.sidebar.multiselect("Market", df["Market"].dropna().unique())
-region_filter = st.sidebar.multiselect("Order Region", df["Order Region"].dropna().unique())
-segment_filter = st.sidebar.multiselect("Customer Segment", df["Customer Segment"].dropna().unique())
+# Core Business Filters
+segment_filter = st.sidebar.multiselect(
+    "Customer Segment",
+    sorted(df["Customer Segment"].dropna().unique())
+)
 
-discount_slider = st.sidebar.slider("💸 Discount Threshold", 0.0, 0.5, 0.2)
+category_filter = st.sidebar.multiselect(
+    "Product Category",
+    sorted(df["Category Name"].dropna().unique())
+)
 
-if ship_filter:
-    df = df[df["Shipping Mode"].isin(ship_filter)]
-if market_filter:
-    df = df[df["Market"].isin(market_filter)]
-if region_filter:
-    df = df[df["Order Region"].isin(region_filter)]
+market_filter = st.sidebar.multiselect(
+    "Market",
+    sorted(df["Market"].dropna().unique())
+)
+
+region_filter = st.sidebar.multiselect(
+    "Order Region",
+    sorted(df["Order Region"].dropna().unique())
+)
+
+# Financial Controls
+st.sidebar.markdown("### 💸 Pricing Controls")
+
+discount_slider = st.sidebar.slider(
+    "Max Discount Rate",
+    0.0, 0.5, 0.2
+)
+
+profit_filter = st.sidebar.selectbox(
+    "Profitability Filter",
+    ["All", "Profitable Only", "Loss-Making Only"]
+)
+
+# ---------------------------------------------------------
+# APPLY FILTERS
+# ---------------------------------------------------------
 if segment_filter:
     df = df[df["Customer Segment"].isin(segment_filter)]
 
-# ---------------------------------------------------------
+if category_filter:
+    df = df[df["Category Name"].isin(category_filter)]
+
+if market_filter:
+    df = df[df["Market"].isin(market_filter)]
+
+if region_filter:
+    df = df[df["Order Region"].isin(region_filter)]
+
+# Discount filter
+df = df[df["Order Item Discount Rate"] <= discount_slider]
+
+# Profit filter
+if profit_filter == "Profitable Only":
+    df = df[df["Order Profit Per Order"] > 0]
+elif profit_filter == "Loss-Making Only":
+    df = df[df["Order Profit Per Order"] < 0]# ---------------------------------------------------------
 # KPI SECTION
 # ---------------------------------------------------------
 total_sales = df["Sales"].sum()
@@ -272,7 +312,7 @@ are contributing negatively to margins.
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# FOOTER (RESTORED PROFESSIONAL VERSION)
+# FOOTER (UNCHANGED)
 # ---------------------------------------------------------
 def render_footer():
     if not UNIFIED_LOGO_PATH.exists():
@@ -282,7 +322,6 @@ def render_footer():
     <div style="display:flex;justify-content:space-between;align-items:center;
                 padding:25px 40px;background:#0E1117;color:white;
                 font-size:13px;font-family:'Segoe UI',sans-serif;">
-        
         <div style="display:flex;gap:12px;align-items:center;">
             <img src="data:image/png;base64,{encoded}" style="height:50px;">
             <span>Mentored by 
@@ -290,15 +329,13 @@ def render_footer():
                target="_blank" style="color:#0A66C2;">
                Sai Prasad Kagne</a></span>
         </div>
-
         <span>
             Created by 
             <a href="https://www.linkedin.com/in/vidit-kapoor-5062b02a6"
                target="_blank" style="color:#0A66C2;">
                Vidit Kapoor</a>
         </span>
-
-        <span>Version 2.0 | Profitability Intelligence</span>
+        <span>Version 1.0 | Feb 2026</span>
     </div>
     """, unsafe_allow_html=True)
 
