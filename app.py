@@ -204,8 +204,8 @@ with tab2:
 )
 
 # STEP 4: Take TOP 20% customers
-    top_n_count = int(len(customer_pareto) * 0.2)
-    top_n = customer_pareto.head(top_n_count)
+    top_n_count = int(len(customer_pareto) * 0.)
+    top_n = customer_pareto.head(30)
 
     contribution = top_n["Order Profit Per Order"].sum() / total_profit_sum
     st.success(f"Top 20% customers contribute {contribution*100:.2f}% of total profit")
