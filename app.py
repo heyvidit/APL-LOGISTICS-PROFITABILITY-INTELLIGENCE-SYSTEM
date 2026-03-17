@@ -184,12 +184,13 @@ with tab2:
     st.subheader("💎 Highest Value Customers (CVI)")
     st.dataframe(customer.sort_values("Customer Value Index", ascending=False).head(10))
 
+# ---------------------------------------------------------
+# PARETO (FINAL CORRECT VERSION)
+# ---------------------------------------------------------
     st.subheader("🔥 Pareto Analysis (Top Customers)")
 
-# STEP 1: Proper aggregation
-    customer_pareto = df.groupby("Customer Id").agg({
-    "Order Profit Per Order": "sum"
-}).reset_index()
+# STEP 1: Fresh aggregation (DO NOT reuse previous customer df)
+    customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
 
 # STEP 2: Sort
     customer_pareto = customer_pareto.sort_values(
@@ -197,15 +198,14 @@ with tab2:
 )
 
 # STEP 3: Cumulative %
+    total_profit_sum = customer_pareto["Order Profit Per Order"].sum()
+
     customer_pareto["Cumulative %"] = (
-    customer_pareto["Order Profit Per Order"].cumsum() /
-    customer_pareto["Order Profit Per Order"].sum()
+    customer_pareto["Order Profit Per Order"].cumsum() / total_profit_sum
 )
 
-# STEP 4: Take top 15 (clean visualization)
+# STEP 4: Top 15
     top_n = customer_pareto.head(15).copy()
-
-# Convert to string (IMPORTANT)
     top_n["Customer Id"] = top_n["Customer Id"].astype(str)
 
 # STEP 5: Plot
@@ -216,7 +216,7 @@ with tab2:
     color_discrete_sequence=[PRIMARY_COLOR]
 )
 
-# Add cumulative line
+# Line
     fig_pareto.add_scatter(
     x=top_n["Customer Id"],
     y=top_n["Cumulative %"],
@@ -225,14 +225,14 @@ with tab2:
     yaxis="y2"
 )
 
-# Layout fix
+# Layout
     fig_pareto.update_layout(
     yaxis2=dict(
         overlaying="y",
         side="right",
         range=[0, 1]
     ),
-    xaxis=dict(type="category"),  # 🔥 KEY FIX
+    xaxis=dict(type="category"),
     xaxis_tickangle=-45
 )
 
