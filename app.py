@@ -266,16 +266,28 @@ with tab4:
 
     st.plotly_chart(style(fig4, "Discount Impact"))
 
-    st.subheader("📊 Threshold Analysis")
+    st.subheader("📊 Discount Threshold Analysis")
 
-    df["Discount Bin"] = pd.cut(df["Order Item Discount Rate"], bins=5).astype(str)
+    df["Discount Bin"] = pd.cut(
+        df["Order Item Discount Rate"], bins=5
+    ).astype(str)
 
-    analysis = df.groupby("Discount Bin")["Profit Margin"].mean().reset_index()
+    discount_analysis = df.groupby("Discount Bin").agg({
+        "Profit Margin": "mean"
+    }).reset_index()
 
-    fig_discount = px.bar(analysis, x="Discount Bin", y="Profit Margin",
-                          color_discrete_sequence=[PRIMARY_COLOR])
+    fig_discount = px.bar(
+        discount_analysis,
+        x="Discount Bin",
+        y="Profit Margin",
+        color_discrete_sequence=[PRIMARY_COLOR]
+    )
 
-    st.plotly_chart(style(fig_discount, "Threshold"))
+    st.plotly_chart(
+        style(fig_discount, "Average Profit Margin by Discount Range"),
+        use_container_width=True
+    )
+
 
 # ---------------------------------------------------------
 # REGION TAB
