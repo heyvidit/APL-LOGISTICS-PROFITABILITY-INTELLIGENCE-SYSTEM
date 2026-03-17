@@ -28,9 +28,10 @@ DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 
-PRIMARY_COLOR = "#2A82E9"
+PRIMARY_COLOR = "#2A82E9"  # 🔥 Updated Color
+
 CHART_BG = "#161B22"
-GRID_COLOR = "#0B12A3"
+GRID_COLOR = "#2F3542"
 TEXT_COLOR = "#E5E7EB"
 
 # ---------------------------------------------------------
@@ -165,8 +166,11 @@ with tab3:
         "Order Profit Per Order": "sum"
     }).reset_index()
 
-    fig1 = px.bar(cat, x="Category Name", y="Sales")
-    fig2 = px.bar(cat, x="Category Name", y="Order Profit Per Order")
+    fig1 = px.bar(cat, x="Category Name", y="Sales",
+                  color_discrete_sequence=[PRIMARY_COLOR])
+
+    fig2 = px.bar(cat, x="Category Name", y="Order Profit Per Order",
+                  color_discrete_sequence=[PRIMARY_COLOR])
 
     st.plotly_chart(style(fig1, "Revenue by Category"))
     st.plotly_chart(style(fig2, "Profit by Category"))
@@ -193,11 +197,14 @@ with tab2:
         "Order Profit Per Order": "sum"
     }).reset_index()
 
-    # 🔥 CVI ADDED
     total_customer_profit = customer["Order Profit Per Order"].sum()
     customer["Customer Value Index"] = customer["Order Profit Per Order"] / total_customer_profit
 
-    fig3 = px.scatter(customer, x="Sales", y="Order Profit Per Order")
+    fig3 = px.scatter(customer,
+                      x="Sales",
+                      y="Order Profit Per Order",
+                      color_discrete_sequence=[PRIMARY_COLOR])
+
     st.plotly_chart(style(fig3, "Customer Value Distribution"))
 
     st.subheader("🏆 Top Customers")
@@ -206,14 +213,12 @@ with tab2:
     st.subheader("⚠️ Loss-Making Customers")
     st.dataframe(customer[customer["Order Profit Per Order"] < 0].head(10))
 
-    # 🔥 CVI TABLE
     st.subheader("💎 Highest Value Customers (CVI)")
     st.dataframe(
         customer.sort_values("Customer Value Index", ascending=False).head(10),
         use_container_width=True
     )
 
-    # 🔥 PARETO
     st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
 
     customer = customer.sort_values("Order Profit Per Order", ascending=False)
@@ -221,7 +226,10 @@ with tab2:
 
     top_n = customer.head(20)
 
-    fig_pareto = px.bar(top_n, x="Customer Id", y="Order Profit Per Order")
+    fig_pareto = px.bar(top_n,
+                        x="Customer Id",
+                        y="Order Profit Per Order",
+                        color_discrete_sequence=[PRIMARY_COLOR])
 
     fig_pareto.add_scatter(
         x=top_n["Customer Id"],
@@ -251,7 +259,8 @@ with tab4:
     fig4 = px.scatter(df,
                       x="Order Item Discount Rate",
                       y="Profit Margin",
-                      opacity=0.5)
+                      opacity=0.5,
+                      color_discrete_sequence=[PRIMARY_COLOR])
 
     st.plotly_chart(style(fig4, "Discount vs Profit Margin"))
 
@@ -266,7 +275,11 @@ with tab5:
         "Order Profit Per Order": "sum"
     }).reset_index()
 
-    fig5 = px.bar(region_df, x="Order Region", y="Order Profit Per Order")
+    fig5 = px.bar(region_df,
+                  x="Order Region",
+                  y="Order Profit Per Order",
+                  color_discrete_sequence=[PRIMARY_COLOR])
+
     st.plotly_chart(style(fig5, "Profit by Region"))
 
 # ---------------------------------------------------------
