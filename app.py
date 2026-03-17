@@ -187,32 +187,32 @@ with tab2:
 # ---------------------------------------------------------
 # 🔥 PARETO ANALYSIS (FINAL CLEAN VERSION)
 # ---------------------------------------------------------
-     st.subheader("🔥 Pareto Analysis (Top 30 Customers)")
+st.subheader("🔥 Pareto Analysis (Top 30 Customers)")
 
 # STEP 1: Aggregate profit per customer
-     customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
+customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
 
 # STEP 2: Sort descending
-    customer_pareto = customer_pareto.sort_values(
+customer_pareto = customer_pareto.sort_values(
     "Order Profit Per Order", ascending=False
     ).reset_index(drop=True)
 
 # STEP 3: Take Top 30 customers
-    top_n = customer_pareto.head(40).copy()
+top_n = customer_pareto.head(40).copy()
 
 # STEP 4: Cumulative % (ONLY on top 30)
-    top_n["Cumulative %"] = (
+top_n["Cumulative %"] = (
     top_n["Order Profit Per Order"].cumsum() /
     top_n["Order Profit Per Order"].sum()
 )
 
 # STEP 5: Contribution insight
-    contribution = top_n["Order Profit Per Order"].sum() / customer_pareto["Order Profit Per Order"].sum()
+contribution = top_n["Order Profit Per Order"].sum() / customer_pareto["Order Profit Per Order"].sum()
 
-    st.success(f"Top 30 customers contribute {contribution*100:.2f}% of total profit")
+st.success(f"Top 30 customers contribute {contribution*100:.2f}% of total profit")
 
 # STEP 6: Plot
-    fig_pareto = px.bar(
+fig_pareto = px.bar(
     top_n,
     x="Customer Id",
     y="Order Profit Per Order",
@@ -220,7 +220,7 @@ with tab2:
 )
 
 # 🔵 Cumulative line
-    fig_pareto.add_scatter(
+fig_pareto.add_scatter(
     x=top_n["Customer Id"],
     y=top_n["Cumulative %"],
     mode="lines+markers",
@@ -229,7 +229,7 @@ with tab2:
 )
 
 # 🔴 80% reference line (IMPORTANT)
-    fig_pareto.add_hline(
+fig_pareto.add_hline(
     y=0.8,
     line_dash="dash",
     line_color="red",
@@ -239,7 +239,7 @@ with tab2:
 )
 
 # Layout
-   fig_pareto.update_layout(
+fig_pareto.update_layout(
    yaxis2=dict(
    overlaying="y",
    side="right",
@@ -253,7 +253,7 @@ with tab2:
    title="Pareto Analysis: Customer Profit Contribution"
 )
 
-   st.plotly_chart(fig_pareto, use_container_width=True)
+st.plotly_chart(fig_pareto, use_container_width=True)
 # ---------------------------------------------------------
 # PRODUCTS TAB
 # ---------------------------------------------------------
