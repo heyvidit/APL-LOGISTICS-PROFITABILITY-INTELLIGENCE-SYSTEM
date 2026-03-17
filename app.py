@@ -187,7 +187,7 @@ with tab2:
 # ---------------------------------------------------------
 # PARETO (FINAL CORRECT VERSION)
 # ---------------------------------------------------------
-   st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
+    st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
    # STEP 1: Aggregate
     customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
 
