@@ -187,7 +187,7 @@ with tab2:
 # ---------------------------------------------------------
 # PARETO (FINAL CORRECT VERSION)
 # ---------------------------------------------------------
-    st.subheader("🔥 Pareto Analysis (Top 20% Customers)")
+    st.subheader("🔥 Pareto Analysis (Top 30 Customers)")
    # STEP 1: Aggregate
     customer_pareto = df.groupby("Customer Id")["Order Profit Per Order"].sum().reset_index()
 
@@ -221,12 +221,7 @@ with tab2:
 )
 
 # Pareto line
-    fig_pareto.add_scatter(
-    x=top_n["Customer Id"],
-    y=top_n["Cumulative %"],
-    mode="lines+markers",
-    name="Cumulative %",
-    yaxis="y2"
+    fig_pareto.add_hline(y=0.8, line_dash="dash", yref="y2")
 )
 
 # Layout
