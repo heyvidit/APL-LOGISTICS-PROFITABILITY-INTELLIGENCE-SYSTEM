@@ -254,15 +254,39 @@ with tab2:
 # DISCOUNT TAB
 # ---------------------------------------------------------
 with tab4:
-    st.subheader("💸 Discount Impact")
 
-    fig4 = px.scatter(df,
-                      x="Order Item Discount Rate",
-                      y="Profit Margin",
-                      opacity=0.5,
-                      color_discrete_sequence=[PRIMARY_COLOR])
+st.subheader("📊 Discount Threshold Analysis")
 
-    st.plotly_chart(style(fig4, "Discount vs Profit Margin"))
+# Create bins
+df["Discount Bin"] = pd.cut(df["Order Item Discount Rate"], bins=5)
+
+# Group analysis
+discount_analysis = df.groupby("Discount Bin").agg({
+    "Profit Margin": "mean"
+}).reset_index()
+
+# Bar chart
+fig_discount = px.bar(
+    discount_analysis,
+    x="Discount Bin",
+    y="Profit Margin",
+    color_discrete_sequence=[PRIMARY_COLOR]
+)
+
+st.plotly_chart(style(fig_discount, "Average Profit Margin by Discount Range"), use_container_width=True)
+
+# ---------------------------------------------------------
+# 🔥 THRESHOLD DETECTION
+# ---------------------------------------------------------
+
+# Find where margin becomes negative
+negative_bins = discount_analysis[discount_analysis["Profit Margin"] < 0]
+
+if not negative_bins.empty:
+    threshold = str(negative_bins.iloc[0]["Discount Bin"])
+    st.error(f"⚠️ Profit starts turning negative in discount range: {threshold}")
+else:
+    st.success("✅ No negative margin detected across discount ranges")
 
 # ---------------------------------------------------------
 # REGION TAB
