@@ -193,7 +193,7 @@ with tab1:
             barmode="group",
             color_discrete_sequence=[PRIMARY_COLOR, GAIN_COLOR]
         )
-        st.plotly_chart(style(fig_seg), use_container_width=True)
+        st.plotly_chart(style(fig_seg), use_container_width=True, key='chart_7')
 
     with col_right:
         st.markdown("#### Profit Margin by Customer Segment")
@@ -203,7 +203,7 @@ with tab1:
             color="Margin %",
             color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"]
         )
-        st.plotly_chart(style(fig_margin), use_container_width=True)
+        st.plotly_chart(style(fig_margin), use_container_width=True, key='chart_8')
 
     # ── NEW: Profit concentration (top-N cumulative) ───────
     st.markdown("#### Profit Concentration by Category")
@@ -233,7 +233,7 @@ with tab1:
         xaxis=dict(tickangle=-30),
         legend=dict(orientation="h", y=1.1)
     )
-    st.plotly_chart(fig_conc, use_container_width=True)
+    st.plotly_chart(fig_conc, use_container_width=True, key='chart_1')
 
     # ── Executive Summary ──────────────────────────────────
     customer_summary = df.groupby("Customer Id")["Order Profit Per Order"].sum().sort_values(ascending=False)
@@ -304,7 +304,7 @@ with tab2:
             color_discrete_sequence=px.colors.sequential.Blues_r
         )
         fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT_COLOR))
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(fig_pie, use_container_width=True, key='chart_2')
 
     with col2:
         st.markdown("#### Revenue vs Profit per Segment")
@@ -313,7 +313,7 @@ with tab2:
             barmode="group",
             color_discrete_sequence=[PRIMARY_COLOR, GAIN_COLOR]
         )
-        st.plotly_chart(style(fig_seg2), use_container_width=True)
+        st.plotly_chart(style(fig_seg2), use_container_width=True, key='chart_9')
 
     # ── Scatter ────────────────────────────────────────────
     st.markdown("#### Customer Value Distribution")
@@ -323,7 +323,7 @@ with tab2:
         color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"],
         hover_data=["Customer Id", "Orders"]
     )
-    st.plotly_chart(style(fig3), use_container_width=True)
+    st.plotly_chart(style(fig3), use_container_width=True, key='chart_10')
 
     # ── Tables ─────────────────────────────────────────────
     col_a, col_b = st.columns(2)
@@ -378,7 +378,7 @@ with tab2:
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color=TEXT_COLOR), legend=dict(orientation="h", y=1.1)
     )
-    st.plotly_chart(fig_pareto, use_container_width=True)
+    st.plotly_chart(fig_pareto, use_container_width=True, key='chart_3')
 
 
 # ==========================================================
@@ -399,13 +399,13 @@ with tab3:
         fig1 = px.bar(cat.sort_values("Revenue", ascending=True),
                       x="Revenue", y="Category Name", orientation="h",
                       color_discrete_sequence=[PRIMARY_COLOR])
-        st.plotly_chart(style(fig1, "Revenue by Category"), use_container_width=True)
+        st.plotly_chart(style(fig1, 'Revenue by Category'), use_container_width=True, key='chart_11')
     with col2:
         fig2 = px.bar(cat.sort_values("Profit", ascending=True),
                       x="Profit", y="Category Name", orientation="h",
                       color="Profit",
                       color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"])
-        st.plotly_chart(style(fig2, "Profit by Category"), use_container_width=True)
+        st.plotly_chart(style(fig2, 'Profit by Category'), use_container_width=True, key='chart_12')
 
     # ── NEW: Category Profitability Heatmap ───────────────
     st.markdown("#### 🗺️ Category Profitability Heatmap (by Market)")
@@ -421,7 +421,7 @@ with tab3:
         font=dict(color=TEXT_COLOR),
         xaxis=dict(tickangle=-30)
     )
-    st.plotly_chart(fig_heat, use_container_width=True)
+    st.plotly_chart(fig_heat, use_container_width=True, key='chart_4')
 
     # ── Product-level ─────────────────────────────────────
     st.markdown("#### 📋 Product-Level Profitability")
@@ -460,7 +460,7 @@ with tab3:
         hover_name="Product Name", text="Product Name"
     )
     fig_bubble.update_traces(textposition="top center", textfont_size=9)
-    st.plotly_chart(style(fig_bubble), use_container_width=True)
+    st.plotly_chart(style(fig_bubble), use_container_width=True, key='chart_13')
 
 
 # ==========================================================
@@ -478,7 +478,7 @@ with tab4:
             color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"],
             opacity=0.5
         )
-        st.plotly_chart(style(fig4, "Discount Rate vs Profit Margin"), use_container_width=True)
+        st.plotly_chart(style(fig4, 'Discount Rate vs Profit Margin'), use_container_width=True, key='chart_14')
 
     with col2:
         df["Discount Bin"] = pd.cut(df["Order Item Discount Rate"], bins=5).astype(str)
@@ -491,7 +491,7 @@ with tab4:
             color="Avg_Margin",
             color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"]
         )
-        st.plotly_chart(style(fig_disc, "Avg Margin by Discount Range"), use_container_width=True)
+        st.plotly_chart(style(fig_disc, 'Avg Margin by Discount Range'), use_container_width=True, key='chart_15')
 
     # ── NEW: What-If Discount Scenario Tool ───────────────
     st.markdown("---")
@@ -577,7 +577,7 @@ with tab4:
             legend=dict(orientation="h", y=1.1),
             title="Profit & Margin Sensitivity Curve"
         )
-        st.plotly_chart(fig_whatif, use_container_width=True)
+        st.plotly_chart(fig_whatif, use_container_width=True, key='chart_5')
 
         st.info(
             "⚠️ **Model Note**: Projections use a simplified elasticity model "
@@ -603,12 +603,12 @@ with tab5:
     with col1:
         fig_r = px.bar(region.sort_values("Revenue"), x="Revenue", y="Order Region",
                        orientation="h", color_discrete_sequence=[PRIMARY_COLOR])
-        st.plotly_chart(style(fig_r, "Revenue by Region"), use_container_width=True)
+        st.plotly_chart(style(fig_r, 'Revenue by Region'), use_container_width=True, key='chart_16')
     with col2:
         fig_r2 = px.bar(region.sort_values("Profit"), x="Profit", y="Order Region",
                         orientation="h", color="Profit",
                         color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"])
-        st.plotly_chart(style(fig_r2, "Profit by Region"), use_container_width=True)
+        st.plotly_chart(style(fig_r2, 'Profit by Region'), use_container_width=True, key='chart_17')
 
     # ── Market bar ────────────────────────────────────────
     market = df.groupby("Market").agg(
@@ -620,7 +620,7 @@ with tab5:
     fig_m = px.bar(market, x="Market", y=["Revenue", "Profit"],
                    barmode="group",
                    color_discrete_sequence=[PRIMARY_COLOR, GAIN_COLOR])
-    st.plotly_chart(style(fig_m, "Market Revenue vs Profit"), use_container_width=True)
+    st.plotly_chart(style(fig_m, 'Market Revenue vs Profit'), use_container_width=True, key='chart_18')
 
     # ── NEW: Margin % by market ────────────────────────────
     fig_mmargin = px.bar(
@@ -630,7 +630,7 @@ with tab5:
         color_continuous_scale=["#EF4444", "#F59E0B", "#22C55E"],
         text_auto=".1f"
     )
-    st.plotly_chart(style(fig_mmargin, "Profit Margin % by Market"), use_container_width=True)
+    st.plotly_chart(style(fig_mmargin, 'Profit Margin % by Market'), use_container_width=True, key='chart_19')
 
     # ── NEW: Choropleth world map ──────────────────────────
     st.markdown("#### 🗺️ Profit by Country (World Map)")
@@ -655,7 +655,7 @@ with tab5:
         geo=dict(bgcolor="rgba(0,0,0,0)", showframe=False,
                  showcoastlines=True, coastlinecolor="#374151")
     )
-    st.plotly_chart(fig_map, use_container_width=True)
+    st.plotly_chart(fig_map, use_container_width=True, key='chart_6')
 
     # ── Top/Bottom countries table ─────────────────────────
     col_a, col_b = st.columns(2)
