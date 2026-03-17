@@ -226,7 +226,6 @@ with tab2:
     y=top_n["Cumulative %"],
     mode="lines+markers",
     name="Cumulative %",
-    color="red",    
     yaxis="y2"
 )
 
