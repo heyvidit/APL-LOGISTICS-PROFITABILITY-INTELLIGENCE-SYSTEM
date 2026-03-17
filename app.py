@@ -184,7 +184,7 @@ with tab2:
     st.subheader("💎 Highest Value Customers (CVI)")
     st.dataframe(customer.sort_values("Customer Value Index", ascending=False).head(10))
 
-st.subheader("🔥 Pareto Analysis (Top Customers)")
+    st.subheader("🔥 Pareto Analysis (Top Customers)")
 
 # Sort customers
 customer = customer.sort_values("Order Profit Per Order", ascending=False)
@@ -195,8 +195,11 @@ customer["Cumulative %"] = (
     customer["Order Profit Per Order"].sum()
 )
 
-# Top 15 for clarity
-top_n = customer.head(15)
+# Top 15
+top_n = customer.head(15).copy()
+
+# 🔥 FIX: Convert to string (for proper bars)
+top_n["Customer Id"] = top_n["Customer Id"].astype(str)
 
 fig_pareto = px.bar(
     top_n,
@@ -205,7 +208,7 @@ fig_pareto = px.bar(
     color_discrete_sequence=[PRIMARY_COLOR]
 )
 
-# Add cumulative line
+# Cumulative line
 fig_pareto.add_scatter(
     x=top_n["Customer Id"],
     y=top_n["Cumulative %"],
@@ -214,7 +217,6 @@ fig_pareto.add_scatter(
     yaxis="y2"
 )
 
-# Layout fix
 fig_pareto.update_layout(
     yaxis2=dict(
         overlaying="y",
@@ -224,7 +226,6 @@ fig_pareto.update_layout(
     xaxis_tickangle=-45
 )
 
-# ✅ SAME indentation level
 st.plotly_chart(fig_pareto, use_container_width=True)
 # ---------------------------------------------------------
 # PRODUCTS TAB
