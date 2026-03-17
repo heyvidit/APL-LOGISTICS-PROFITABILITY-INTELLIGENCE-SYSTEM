@@ -176,24 +176,47 @@ with tab2:
     st.subheader("💎 Highest Value Customers (CVI)")
     st.dataframe(customer.sort_values("Customer Value Index", ascending=False).head(10))
 
-    st.subheader("🔥 Pareto Analysis")
+st.subheader("🔥 Pareto Analysis (Top Customers)")
 
-    customer = customer.sort_values("Order Profit Per Order", ascending=False)
-    customer["Cumulative %"] = customer["Order Profit Per Order"].cumsum() / customer["Order Profit Per Order"].sum()
+# Sort customers
+customer = customer.sort_values("Order Profit Per Order", ascending=False)
 
-    top_n = customer.head(20)
+# Compute cumulative %
+customer["Cumulative %"] = (
+    customer["Order Profit Per Order"].cumsum() /
+    customer["Order Profit Per Order"].sum()
+)
 
-    fig_pareto = px.bar(top_n, x="Customer Id", y="Order Profit Per Order",
-                        color_discrete_sequence=[PRIMARY_COLOR])
+# Take top 15 for clarity
+top_n = customer.head(15)
 
-    fig_pareto.add_scatter(
-        x=top_n["Customer Id"],
-        y=top_n["Cumulative %"],
-        mode="lines+markers",
-        yaxis="y2"
-    )
+fig_pareto = px.bar(
+    top_n,
+    x="Customer Id",
+    y="Order Profit Per Order",
+    color_discrete_sequence=[PRIMARY_COLOR]
+)
 
-    fig_pareto.update_layout(yaxis2=dict(overlaying="y", side="right"))
+# Add cumulative line
+fig_pareto.add_scatter(
+    x=top_n["Customer Id"],
+    y=top_n["Cumulative %"],
+    mode="lines+markers",
+    name="Cumulative %",
+    yaxis="y2"
+)
+
+# Fix axis
+fig_pareto.update_layout(
+    yaxis2=dict(
+        overlaying="y",
+        side="right",
+        range=[0,1]   # 🔥 IMPORTANT
+    ),
+    xaxis_tickangle=-45
+)
+
+st.plotly_chart(fig_pareto, use_container_width=True)
 
     st.plotly_chart(fig_pareto)
 
