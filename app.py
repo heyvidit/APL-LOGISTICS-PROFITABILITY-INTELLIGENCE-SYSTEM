@@ -28,7 +28,7 @@ DATA_PATH = Path("APL_Logistics.csv.gz")
 APL_LOGO_PATH = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 
-PRIMARY_COLOR = "#0B12A3"
+PRIMARY_COLOR = "#2A82E9"
 CHART_BG = "#161B22"
 GRID_COLOR = "#0B12A3"
 TEXT_COLOR = "#E5E7EB"
