@@ -51,8 +51,8 @@ section[data-testid="stSidebar"] {background-color:#0E1117;padding:18px;}
 .chart-card {background:#161B22;padding:18px;border-radius:14px;margin-bottom:30px;}
 .summary-box {background:#111827;padding:24px;border-radius:14px;margin-top:30px;}
 .data-note {background:#1F2937;border-left:4px solid #2A82E9;padding:10px 16px;border-radius:6px;color:#9CA3AF;font-size:13px;margin-bottom:16px;}
-.loss-badge {background:#7F1D1D;color:#FCA5A5;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;}
-.gain-badge {background:#14532D;color:#86EFAC;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+.loss-badge {background:#1F2937;color:#EF4444;border:1px solid #EF4444;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+.gain-badge {background:#1F2937;color:#22C55E;border:1px solid #22C55E;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -329,7 +329,7 @@ with tab1:
         fig_loss_cat = px.bar(
             loss_cats, x="Profit", y="Category Name", orientation="h",
             color="Profit",
-            color_continuous_scale=["#7F1D1D", "#EF4444", "#FCA5A5"],
+            color_continuous_scale=["#EF4444", "#F59E0B", "#2A82E9"],
             title="Loss-Making Categories — Net Profit"
         )
         st.plotly_chart(style(fig_loss_cat), use_container_width=True, key="chart_loss_cat")
@@ -454,7 +454,7 @@ with tab2:
     fig_pareto.add_scatter(x=top_n["Customer Id"].astype(str), y=top_n["Cumulative %"],
                            mode="lines+markers", name="Cumulative %", yaxis="y2",
                            line=dict(color=GAIN_COLOR))
-    fig_pareto.add_hline(y=0.8, line_dash="dash", line_color="red",
+    fig_pareto.add_hline(y=0.8, line_dash="dash", line_color=LOSS_COLOR,
                           annotation_text="80% Threshold",
                           annotation_position="top right", yref="y2")
     fig_pareto.update_layout(
@@ -493,7 +493,7 @@ with tab3:
         fig2 = px.bar(cat.sort_values("Profit", ascending=True),
                       x="Profit", y="Category Name", orientation="h",
                       color="Profit",
-                      color_continuous_scale=["#7F1D1D", "#2A82E9", "#7EC8F8"])
+                      color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"])
         st.plotly_chart(style(fig2, "Profit by Category"), use_container_width=True, key="chart_12")
 
     # FIX 2: Explicit loss-making category callout in Products tab
@@ -517,7 +517,7 @@ with tab3:
     st.markdown("#### 🗺️ Category Profitability Heatmap (by Market)")
     pivot = df.groupby(["Category Name", "Market"])["Order Profit Per Order"].sum().unstack(fill_value=0)
     fig_heat = px.imshow(pivot,
-                         color_continuous_scale=["#7F1D1D", "#161B22", "#0D3B6E", "#2A82E9", "#7EC8F8"],
+                         color_continuous_scale=["#EF4444", "#161B22", "#0D3B6E", "#2A82E9", "#7EC8F8"],
                          aspect="auto", text_auto=".0f")
     fig_heat.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT_COLOR),
                             xaxis=dict(tickangle=-30))
@@ -555,7 +555,7 @@ with tab3:
     top30 = product.nlargest(30, "Revenue")
     fig_bubble = px.scatter(top30, x="Revenue", y="Margin %", size="Orders",
                              color="Margin %",
-                             color_continuous_scale=["#7F1D1D", "#2A82E9", "#7EC8F8"],
+                             color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"],
                              hover_name="Product Name",
                              hover_data={"Revenue": ":$,.0f", "Margin %": ":.1f", "Orders": True})
     fig_bubble.update_traces(marker=dict(opacity=0.85, line=dict(width=1, color="#2A82E9")))
@@ -585,7 +585,7 @@ with tab4:
         fig4 = px.scatter(df.sample(min(5000, len(df)), random_state=1),
                           x="Order Item Discount Rate", y="Profit Margin",
                           color="Profit Margin",
-                          color_continuous_scale=["#7F1D1D", "#2A82E9", "#7EC8F8"],
+                          color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"],
                           opacity=0.5)
         st.plotly_chart(style(fig4, "Discount Rate vs Profit Margin"), use_container_width=True, key="chart_14")
 
@@ -597,7 +597,7 @@ with tab4:
         ).reset_index()
         fig_disc = px.bar(discount_analysis, x="Discount Bin", y="Avg_Margin",
                           color="Avg_Margin",
-                          color_continuous_scale=["#7F1D1D", "#2A82E9", "#7EC8F8"])
+                          color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"])
         st.plotly_chart(style(fig_disc, "Avg Margin by Discount Range"), use_container_width=True, key="chart_15")
 
     # What-If Simulator
@@ -704,7 +704,7 @@ with tab5:
     with col2:
         fig_r2 = px.bar(region.sort_values("Profit"), x="Profit", y="Order Region",
                         orientation="h", color="Profit",
-                        color_continuous_scale=["#7F1D1D", "#2A82E9", "#7EC8F8"])
+                        color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"])
         st.plotly_chart(style(fig_r2, "Profit by Region"), use_container_width=True, key="chart_17")
 
     # Strong revenue but weak profit — new highlight
@@ -737,7 +737,7 @@ with tab5:
 
     fig_mmargin = px.bar(market.sort_values("Margin %"), x="Market", y="Margin %",
                           color="Margin %",
-                          color_continuous_scale=["#7F1D1D", "#2A82E9", "#7EC8F8"],
+                          color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"],
                           text_auto=".1f")
     st.plotly_chart(style(fig_mmargin, "Profit Margin % by Market"), use_container_width=True, key="chart_19")
 
@@ -753,7 +753,7 @@ with tab5:
         country, locations="Order Country", locationmode="country names",
         color="Profit", hover_name="Order Country",
         hover_data={"Revenue": ":,.0f", "Profit": ":,.0f", "Margin %": ":.1f"},
-        color_continuous_scale=["#7F1D1D", "#161B22", "#0D3B6E", "#2A82E9", "#7EC8F8"]
+        color_continuous_scale=["#EF4444", "#161B22", "#0D3B6E", "#2A82E9", "#7EC8F8"]
     )
     fig_map.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT_COLOR),
