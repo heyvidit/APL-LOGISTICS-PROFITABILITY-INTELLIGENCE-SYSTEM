@@ -77,22 +77,9 @@ render_header()
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
-    @st.cache_data
-def load_data():
-    df = pd.read_csv(DATA_PATH, encoding="latin1")
+    df = pd.read_csv(DATA_PATH,)
     df = df.sample(min(len(df), 50000), random_state=42)
 
-    # Hardcoded country name fixes
-    country_fixes = {
-        "M\x82xico":       "México",
-        "Afganist\x87n":   "Afganistán",
-        "Taiw\x87n":       "Taiwán",
-        "Turkmenist\x87n": "Turkmenistán",
-    }
-    
-    for col in df.select_dtypes(include="object").columns:
-        df[col] = df[col].replace(country_fixes)
-    
     original_rows = len(df)
     df = df[df["Sales"] > 0]
     cleaned_rows = original_rows - len(df)
