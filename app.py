@@ -79,12 +79,18 @@ render_header()
 def load_data():
     df = pd.read_csv(DATA_PATH, encoding="latin1")
     
-    # Fix mojibake encoding
-    str_cols = df.select_dtypes(include="object").columns
-    for col in str_cols:
-        df[col] = df[col].apply(
-            lambda x: x.encode("latin1").decode("utf-8") if isinstance(x, str) else x
-        )
+    # Manual country name corrections
+    country_fixes = {
+        "M�xico": "México",
+        "Afganist�n": "Afganistán", 
+        "Taiw�n": "Taiwán",
+        "Turkmenist�n": "Turkmenistán",
+        # Add more if you find others
+    }
+    df["Order Country"] = df["Order Country"].replace(country_fixes)
+    
+    # Apply to other columns too if needed
+    df["Order Region"] = df["Order Region"].replace(country_fixes)
     df = df.sample(min(len(df), 50000), random_state=42)
 
     original_rows = len(df)
