@@ -77,7 +77,7 @@ render_header()
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_PATH, encoding="latin1")
+    df = pd.read_csv(DATA_PATH, encoding="utf-8")
     df = df.sample(min(len(df), 50000), random_state=42)
 
     original_rows = len(df)
