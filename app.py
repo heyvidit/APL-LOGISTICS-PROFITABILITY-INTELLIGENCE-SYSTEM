@@ -3,7 +3,7 @@
 # Internship: Unified Mentor Pvt. Ltd.
 # Project: Customer & Product Profitability Analytics
 # Author: Vidit Kapoor
-# Version: 3.0 (Fixed & Enhanced)
+# Version: 3.1 (EDA Charts Added)
 # =========================================================
 
 import streamlit as st
@@ -94,7 +94,6 @@ def load_data():
         except Exception:
             pass
     else:
-        # No date column found — create a synthetic one for trend demo
         df["Order Date Parsed"] = pd.NaT
 
     return df, cleaned_rows
@@ -110,9 +109,7 @@ segment_filter = st.sidebar.multiselect("Customer Segment", sorted(df["Customer 
 category_filter = st.sidebar.multiselect("Product Category", sorted(df["Category Name"].dropna().unique()))
 market_filter   = st.sidebar.multiselect("Market", sorted(df["Market"].dropna().unique()))
 region_filter   = st.sidebar.multiselect("Order Region", sorted(df["Order Region"].dropna().unique()))
-
-# FIX 4: Product-level filter added
-product_filter = st.sidebar.multiselect("Product", sorted(df["Product Name"].dropna().unique()))
+product_filter  = st.sidebar.multiselect("Product", sorted(df["Product Name"].dropna().unique()))
 
 st.sidebar.markdown("### 💸 Pricing Controls")
 discount_slider = st.sidebar.slider("Max Discount Rate", 0.0, 0.5, 0.5)
@@ -195,33 +192,158 @@ with tab1:
     order_count    = len(df)
     avg_order_value= total_sales / order_count if order_count else 0
 
-    # FIX 1: Discount Impact Ratio KPI
-    # Defined as: average margin loss per unit of discount rate applied
+    # Discount Impact Ratio KPI
     disc_corr = df[["Order Item Discount Rate", "Profit Margin"]].dropna()
     if len(disc_corr) > 10 and disc_corr["Order Item Discount Rate"].std() > 0:
-        from numpy.polynomial.polynomial import polyfit
         coef = np.polyfit(disc_corr["Order Item Discount Rate"], disc_corr["Profit Margin"], 1)
-        discount_impact_ratio = coef[0]  # slope: margin change per 1 unit discount rate
+        discount_impact_ratio = coef[0]
     else:
         discount_impact_ratio = 0.0
 
     st.subheader("📊 Executive Financial Overview")
 
     c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
-
     kpi(c1, "Total Revenue",         fmt_money(total_sales))
     kpi(c2, "Total Profit",          fmt_money(total_profit))
     kpi(c3, "Profit Margin %",       f"{profit_margin:.2f}%")
     kpi(c4, "Avg Discount",          f"{avg_discount:.2%}")
     kpi(c5, "Total Orders",          f"{order_count:,}")
     kpi(c6, "Avg Order Value",       fmt_money(avg_order_value))
-    # FIX 1: Discount Impact Ratio as a proper KPI card
     kpi(c7, "Discount Impact Ratio", f"{discount_impact_ratio:.2f}",
         sub="Margin Δ per unit discount")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # FIX 3: Revenue vs Profit TIME-SERIES trend chart
+    # ── NEW: EDA DISTRIBUTION SECTION (Figures 1, 2, 3, 4) ──────────────────
+    st.markdown("---")
+    st.markdown("### 🔬 EDA — Distribution Analysis")
+
+    eda_col1, eda_col2 = st.columns(2)
+
+    # Figure 1 — Sales Per Order Distribution
+    with eda_col1:
+        fig_sales_dist = px.histogram(
+            df, x="Sales", nbins=60,
+            title="Fig 1 — Sales Per Order Distribution",
+            color_discrete_sequence=[PRIMARY_COLOR]
+        )
+        fig_sales_dist.update_traces(marker_line_color="#1A5FA8", marker_line_width=0.5)
+        fig_sales_dist.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_COLOR),
+            xaxis=dict(gridcolor=GRID_COLOR, title="Sales ($)"),
+            yaxis=dict(gridcolor=GRID_COLOR, title="Order Count"),
+            title=dict(font=dict(size=15, color=TEXT_COLOR)),
+            margin=dict(t=50, b=40, l=40, r=20),
+            bargap=0.05
+        )
+        st.plotly_chart(fig_sales_dist, use_container_width=True, key="chart_eda1")
+
+    # Figure 2 — Profit Per Order Distribution
+    with eda_col2:
+        fig_profit_dist = px.histogram(
+            df, x="Order Profit Per Order", nbins=60,
+            title="Fig 2 — Order Profit Per Order Distribution",
+            color_discrete_sequence=[GAIN_COLOR]
+        )
+        fig_profit_dist.update_traces(marker_line_color="#158A3E", marker_line_width=0.5)
+        fig_profit_dist.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_COLOR),
+            xaxis=dict(gridcolor=GRID_COLOR, title="Profit Per Order ($)"),
+            yaxis=dict(gridcolor=GRID_COLOR, title="Order Count"),
+            title=dict(font=dict(size=15, color=TEXT_COLOR)),
+            margin=dict(t=50, b=40, l=40, r=20),
+            bargap=0.05
+        )
+        # Add vertical zero line to highlight loss-making orders
+        fig_profit_dist.add_vline(
+            x=0, line_dash="dash", line_color=LOSS_COLOR,
+            annotation_text="Break-even", annotation_position="top right",
+            annotation_font_color=LOSS_COLOR
+        )
+        st.plotly_chart(fig_profit_dist, use_container_width=True, key="chart_eda2")
+
+    eda_col3, eda_col4 = st.columns(2)
+
+    # Figure 3 — Discount Rate Distribution (frequency bar chart)
+    with eda_col3:
+        disc_counts = df["Order Item Discount Rate"].value_counts().sort_index().reset_index()
+        disc_counts.columns = ["Discount Rate", "Order Count"]
+        disc_counts["Discount Rate"] = disc_counts["Discount Rate"].round(2).astype(str)
+        fig_disc_dist = px.bar(
+            disc_counts, x="Discount Rate", y="Order Count",
+            title="Fig 3 — Discount Rate Distribution",
+            color_discrete_sequence=[WARN_COLOR]
+        )
+        fig_disc_dist.update_traces(marker_line_color="#B37200", marker_line_width=0.5)
+        fig_disc_dist.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_COLOR),
+            xaxis=dict(gridcolor=GRID_COLOR, title="Discount Rate", tickangle=-45),
+            yaxis=dict(gridcolor=GRID_COLOR, title="Order Count"),
+            title=dict(font=dict(size=15, color=TEXT_COLOR)),
+            margin=dict(t=50, b=60, l=40, r=20),
+            bargap=0.1
+        )
+        st.plotly_chart(fig_disc_dist, use_container_width=True, key="chart_eda3")
+
+    # Figure 4 — Profit Margin Distribution
+    with eda_col4:
+        fig_margin_dist = px.histogram(
+            df, x="Profit Margin", nbins=60,
+            title="Fig 4 — Profit Margin Distribution",
+            color_discrete_sequence=["#A855F7"]
+        )
+        fig_margin_dist.update_traces(marker_line_color="#7C3ABD", marker_line_width=0.5)
+        fig_margin_dist.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_COLOR),
+            xaxis=dict(gridcolor=GRID_COLOR, title="Profit Margin (ratio)"),
+            yaxis=dict(gridcolor=GRID_COLOR, title="Order Count"),
+            title=dict(font=dict(size=15, color=TEXT_COLOR)),
+            margin=dict(t=50, b=40, l=40, r=20),
+            bargap=0.05
+        )
+        # Add vertical zero line
+        fig_margin_dist.add_vline(
+            x=0, line_dash="dash", line_color=LOSS_COLOR,
+            annotation_text="Break-even", annotation_position="top right",
+            annotation_font_color=LOSS_COLOR
+        )
+        st.plotly_chart(fig_margin_dist, use_container_width=True, key="chart_eda4")
+
+    # Figure 10 — Correlation Matrix Heatmap
+    st.markdown("#### 🔗 Fig 10 — Correlation Matrix (Key Financial Variables)")
+    financial_cols = [
+        "Sales", "Order Profit Per Order", "Order Item Discount Rate",
+        "Profit Margin", "Order Item Quantity", "Order Item Product Price",
+        "Order Item Profit Ratio"
+    ]
+    available_cols = [c for c in financial_cols if c in df.columns]
+    corr_matrix = df[available_cols].corr().round(2)
+
+    fig_corr = px.imshow(
+        corr_matrix,
+        text_auto=True,
+        color_continuous_scale=["#EF4444", "#161B22", "#0D3B6E", "#2A82E9", "#7EC8F8"],
+        zmin=-1, zmax=1,
+        aspect="auto"
+    )
+    fig_corr.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=TEXT_COLOR, size=12),
+        xaxis=dict(tickangle=-35, tickfont=dict(size=11)),
+        yaxis=dict(tickfont=dict(size=11)),
+        coloraxis_colorbar=dict(title="r", tickfont=dict(color=TEXT_COLOR)),
+        margin=dict(t=30, b=80, l=160, r=20)
+    )
+    st.plotly_chart(fig_corr, use_container_width=True, key="chart_eda10")
+
+    st.markdown("---")
+    # ── END EDA SECTION ──────────────────────────────────────────────────────
+
+    # Revenue vs Profit Time-Series Trend
     has_dates = df["Order Date Parsed"].notna().sum() > 100 if "Order Date Parsed" in df.columns else False
 
     if has_dates:
@@ -303,7 +425,7 @@ with tab1:
     )
     st.plotly_chart(fig_conc, use_container_width=True, key="chart_1")
 
-    # FIX 2: Loss-making CATEGORIES explicit section
+    # Loss-making CATEGORIES explicit section
     st.markdown("#### ⚠️ Loss-Making Categories")
     cat_profit = df.groupby("Category Name").agg(
         Revenue=("Sales", "sum"),
@@ -317,7 +439,6 @@ with tab1:
         st.success("✅ No loss-making categories detected with current filters.")
     else:
         st.warning(f"⚠️ {len(loss_cats)} category/categories are operating at a net loss.")
-        # Color-coded table
         loss_display = loss_cats[["Category Name", "Revenue", "Profit", "Margin %", "Orders"]].copy()
         st.dataframe(
             loss_display.style
@@ -496,7 +617,7 @@ with tab3:
                       color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"])
         st.plotly_chart(style(fig2, "Profit by Category"), use_container_width=True, key="chart_12")
 
-    # FIX 2: Explicit loss-making category callout in Products tab
+    # Loss-making category callout
     st.markdown("#### ⚠️ Loss-Making Categories Summary")
     loss_cats_prod = cat[cat["Profit"] < 0].sort_values("Profit")
     if loss_cats_prod.empty:
@@ -568,7 +689,6 @@ with tab3:
 with tab4:
     st.subheader("💸 Discount Impact Analysis")
 
-    # FIX 1: Discount Impact Ratio shown prominently at top of this tab
     disc_kpi_col1, disc_kpi_col2, disc_kpi_col3 = st.columns(3)
     kpi(disc_kpi_col1, "Discount Impact Ratio",
         f"{discount_impact_ratio:.2f}",
@@ -707,7 +827,7 @@ with tab5:
                         color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"])
         st.plotly_chart(style(fig_r2, "Profit by Region"), use_container_width=True, key="chart_17")
 
-    # Strong revenue but weak profit — new highlight
+    # Strong revenue but weak profit
     st.markdown("#### 🔍 Markets with Strong Revenue but Weak Profit")
     market = df.groupby("Market").agg(
         Revenue=("Sales", "sum"),
@@ -803,7 +923,7 @@ def render_footer():
                target="_blank" style="color:#0A66C2;">
                Vidit Kapoor</a>
         </span>
-        <span>Version 3.0 | Mar 2026</span>
+        <span>Version 3.1 | Mar 2026</span>
     </div>
     """, unsafe_allow_html=True)
 
