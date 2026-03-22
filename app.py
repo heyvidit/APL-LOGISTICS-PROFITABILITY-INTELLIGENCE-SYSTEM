@@ -3,7 +3,7 @@
 # Internship: Unified Mentor Pvt. Ltd.
 # Project: Customer & Product Profitability Analytics
 # Author: Vidit Kapoor
-# Version: 3.1 (EDA Charts Added)
+# Version: 3.1
 # =========================================================
 
 import streamlit as st
@@ -222,9 +222,9 @@ with tab1:
 
     # Figure 1 — Sales Per Order Distribution
     with eda_col1:
+        st.markdown("#### Sales Per Order Distribution")
         fig_sales_dist = px.histogram(
             df, x="Sales", nbins=60,
-            title="Fig 1 — Sales Per Order Distribution",
             color_discrete_sequence=[PRIMARY_COLOR]
         )
         fig_sales_dist.update_traces(marker_line_color="#1A5FA8", marker_line_width=0.5)
@@ -233,17 +233,16 @@ with tab1:
             font=dict(color=TEXT_COLOR),
             xaxis=dict(gridcolor=GRID_COLOR, title="Sales ($)"),
             yaxis=dict(gridcolor=GRID_COLOR, title="Order Count"),
-            title=dict(font=dict(size=15, color=TEXT_COLOR)),
-            margin=dict(t=50, b=40, l=40, r=20),
+            margin=dict(t=20, b=40, l=40, r=20),
             bargap=0.05
         )
         st.plotly_chart(fig_sales_dist, use_container_width=True, key="chart_eda1")
 
     # Figure 2 — Profit Per Order Distribution
     with eda_col2:
+        st.markdown("#### Order Profit Per Order Distribution")
         fig_profit_dist = px.histogram(
             df, x="Order Profit Per Order", nbins=60,
-            title="Fig 2 — Order Profit Per Order Distribution",
             color_discrete_sequence=[GAIN_COLOR]
         )
         fig_profit_dist.update_traces(marker_line_color="#158A3E", marker_line_width=0.5)
@@ -252,11 +251,9 @@ with tab1:
             font=dict(color=TEXT_COLOR),
             xaxis=dict(gridcolor=GRID_COLOR, title="Profit Per Order ($)"),
             yaxis=dict(gridcolor=GRID_COLOR, title="Order Count"),
-            title=dict(font=dict(size=15, color=TEXT_COLOR)),
-            margin=dict(t=50, b=40, l=40, r=20),
+            margin=dict(t=20, b=40, l=40, r=20),
             bargap=0.05
         )
-        # Add vertical zero line to highlight loss-making orders
         fig_profit_dist.add_vline(
             x=0, line_dash="dash", line_color=LOSS_COLOR,
             annotation_text="Break-even", annotation_position="top right",
@@ -266,14 +263,14 @@ with tab1:
 
     eda_col3, eda_col4 = st.columns(2)
 
-    # Figure 3 — Discount Rate Distribution (frequency bar chart)
+    # Figure 3 — Discount Rate Distribution
     with eda_col3:
+        st.markdown("#### Discount Rate Distribution")
         disc_counts = df["Order Item Discount Rate"].value_counts().sort_index().reset_index()
         disc_counts.columns = ["Discount Rate", "Order Count"]
         disc_counts["Discount Rate"] = disc_counts["Discount Rate"].round(2).astype(str)
         fig_disc_dist = px.bar(
             disc_counts, x="Discount Rate", y="Order Count",
-            title="Fig 3 — Discount Rate Distribution",
             color_discrete_sequence=[WARN_COLOR]
         )
         fig_disc_dist.update_traces(marker_line_color="#B37200", marker_line_width=0.5)
@@ -282,17 +279,16 @@ with tab1:
             font=dict(color=TEXT_COLOR),
             xaxis=dict(gridcolor=GRID_COLOR, title="Discount Rate", tickangle=-45),
             yaxis=dict(gridcolor=GRID_COLOR, title="Order Count"),
-            title=dict(font=dict(size=15, color=TEXT_COLOR)),
-            margin=dict(t=50, b=60, l=40, r=20),
+            margin=dict(t=20, b=60, l=40, r=20),
             bargap=0.1
         )
         st.plotly_chart(fig_disc_dist, use_container_width=True, key="chart_eda3")
 
     # Figure 4 — Profit Margin Distribution
     with eda_col4:
+        st.markdown("#### Profit Margin Distribution")
         fig_margin_dist = px.histogram(
             df, x="Profit Margin", nbins=60,
-            title="Fig 4 — Profit Margin Distribution",
             color_discrete_sequence=["#A855F7"]
         )
         fig_margin_dist.update_traces(marker_line_color="#7C3ABD", marker_line_width=0.5)
@@ -301,11 +297,9 @@ with tab1:
             font=dict(color=TEXT_COLOR),
             xaxis=dict(gridcolor=GRID_COLOR, title="Profit Margin (ratio)"),
             yaxis=dict(gridcolor=GRID_COLOR, title="Order Count"),
-            title=dict(font=dict(size=15, color=TEXT_COLOR)),
-            margin=dict(t=50, b=40, l=40, r=20),
+            margin=dict(t=20, b=40, l=40, r=20),
             bargap=0.05
         )
-        # Add vertical zero line
         fig_margin_dist.add_vline(
             x=0, line_dash="dash", line_color=LOSS_COLOR,
             annotation_text="Break-even", annotation_position="top right",
@@ -314,7 +308,7 @@ with tab1:
         st.plotly_chart(fig_margin_dist, use_container_width=True, key="chart_eda4")
 
     # Figure 10 — Correlation Matrix Heatmap
-    st.markdown("#### 🔗 Fig 10 — Correlation Matrix (Key Financial Variables)")
+    st.markdown("#### Correlation Matrix (Key Financial Variables)")
     financial_cols = [
         "Sales", "Order Profit Per Order", "Order Item Discount Rate",
         "Profit Margin", "Order Item Quantity", "Order Item Product Price",
@@ -336,7 +330,8 @@ with tab1:
         xaxis=dict(tickangle=-35, tickfont=dict(size=11)),
         yaxis=dict(tickfont=dict(size=11)),
         coloraxis_colorbar=dict(title="r", tickfont=dict(color=TEXT_COLOR)),
-        margin=dict(t=30, b=80, l=160, r=20)
+        margin=dict(t=20, b=80, l=180, r=20),
+        height=380
     )
     st.plotly_chart(fig_corr, use_container_width=True, key="chart_eda10")
 
@@ -635,13 +630,38 @@ with tab3:
                 """, unsafe_allow_html=True)
 
     # Category Heatmap
-    st.markdown("#### 🗺️ Category Profitability Heatmap (by Market)")
+    st.markdown("#### Category Profitability Heatmap (by Market)")
     pivot = df.groupby(["Category Name", "Market"])["Order Profit Per Order"].sum().unstack(fill_value=0)
-    fig_heat = px.imshow(pivot,
-                         color_continuous_scale=["#EF4444", "#161B22", "#0D3B6E", "#2A82E9", "#7EC8F8"],
-                         aspect="auto", text_auto=".0f")
-    fig_heat.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT_COLOR),
-                            xaxis=dict(tickangle=-30))
+    n_rows = len(pivot)
+    heat_height = max(420, n_rows * 34 + 120)
+    z_text = pivot.applymap(lambda v: f"${v/1000:.0f}K" if abs(v) >= 1000 else f"${v:.0f}")
+    fig_heat = go.Figure(data=go.Heatmap(
+        z=pivot.values,
+        x=pivot.columns.tolist(),
+        y=pivot.index.tolist(),
+        text=z_text.values,
+        texttemplate="%{text}",
+        textfont=dict(size=12, color="white"),
+        colorscale=["#EF4444", "#161B22", "#0D3B6E", "#2A82E9", "#7EC8F8"],
+        colorbar=dict(
+            title=dict(text="Profit ($)", font=dict(color=TEXT_COLOR, size=12)),
+            tickfont=dict(color=TEXT_COLOR, size=11),
+            thickness=14, len=0.8
+        ),
+        xgap=3, ygap=3,
+        hoverongaps=False,
+        hovertemplate="<b>%{y}</b> | %{x}<br>Profit: %{text}<extra></extra>"
+    ))
+    fig_heat.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=TEXT_COLOR, size=13),
+        xaxis=dict(tickangle=0, tickfont=dict(size=13), side="bottom",
+                   title=dict(text="Market", font=dict(size=13, color=TEXT_COLOR))),
+        yaxis=dict(tickfont=dict(size=12), autorange="reversed",
+                   title=dict(text="Category", font=dict(size=13, color=TEXT_COLOR))),
+        height=heat_height,
+        margin=dict(t=20, b=60, l=200, r=80)
+    )
     st.plotly_chart(fig_heat, use_container_width=True, key="chart_4")
 
     # Product level
