@@ -216,7 +216,7 @@ with tab1:
 
     # ── NEW: EDA DISTRIBUTION SECTION (Figures 1, 2, 3, 4) ──────────────────
     st.markdown("---")
-    st.markdown("### 🔬 EDA — Distribution Analysis")
+    st.markdown("#### 🔬 EDA — Distribution Analysis")
 
     eda_col1, eda_col2 = st.columns(2)
 
@@ -263,7 +263,7 @@ with tab1:
 
     eda_col3, eda_col4 = st.columns(2)
 
-    # Figure 3 — Discount Rate Distribution
+    # Figure 3 — Discount Rate Distribution  (PRIMARY_COLOR to match theme)
     with eda_col3:
         st.markdown("#### Discount Rate Distribution")
         disc_counts = df["Order Item Discount Rate"].value_counts().sort_index().reset_index()
@@ -271,9 +271,9 @@ with tab1:
         disc_counts["Discount Rate"] = disc_counts["Discount Rate"].round(2).astype(str)
         fig_disc_dist = px.bar(
             disc_counts, x="Discount Rate", y="Order Count",
-            color_discrete_sequence=[WARN_COLOR]
+            color_discrete_sequence=[PRIMARY_COLOR]
         )
-        fig_disc_dist.update_traces(marker_line_color="#B37200", marker_line_width=0.5)
+        fig_disc_dist.update_traces(marker_line_color="#1A5FA8", marker_line_width=0.5)
         fig_disc_dist.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color=TEXT_COLOR),
@@ -284,14 +284,14 @@ with tab1:
         )
         st.plotly_chart(fig_disc_dist, use_container_width=True, key="chart_eda3")
 
-    # Figure 4 — Profit Margin Distribution
+    # Figure 4 — Profit Margin Distribution  (LOSS_COLOR since it shows negative margin territory)
     with eda_col4:
         st.markdown("#### Profit Margin Distribution")
         fig_margin_dist = px.histogram(
             df, x="Profit Margin", nbins=60,
-            color_discrete_sequence=["#A855F7"]
+            color_discrete_sequence=[LOSS_COLOR]
         )
-        fig_margin_dist.update_traces(marker_line_color="#7C3ABD", marker_line_width=0.5)
+        fig_margin_dist.update_traces(marker_line_color="#B91C1C", marker_line_width=0.5)
         fig_margin_dist.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color=TEXT_COLOR),
@@ -301,9 +301,9 @@ with tab1:
             bargap=0.05
         )
         fig_margin_dist.add_vline(
-            x=0, line_dash="dash", line_color=LOSS_COLOR,
+            x=0, line_dash="dash", line_color=GAIN_COLOR,
             annotation_text="Break-even", annotation_position="top right",
-            annotation_font_color=LOSS_COLOR
+            annotation_font_color=GAIN_COLOR
         )
         st.plotly_chart(fig_margin_dist, use_container_width=True, key="chart_eda4")
 
