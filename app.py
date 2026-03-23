@@ -506,58 +506,64 @@ with tab2:
                       hover_data=["Customer Id", "Orders"])
     st.plotly_chart(style(fig3), use_container_width=True, key="chart_10")
 
-    # ── FIGURE 12 FIX: Top/Bottom Customers — Table + Bar Chart ──────────────
+    # ── FIGURE 12: Top/Bottom Customers — Table + Bar Chart ──────────────────
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown("#### 🏆 Top 10 Customers by Profit")
-        top10 = customer.sort_values("Profit", ascending=False).head(10)
+        top10 = customer.sort_values("Profit", ascending=False).head(10).reset_index(drop=True)
+        top10["Rank"] = ["#" + str(i + 1) + "  (ID: " + str(int(row["Customer Id"])) + ")"
+                         for i, row in top10.iterrows()]
         st.dataframe(
             top10[["Customer Id", "Revenue", "Profit", "Orders", "Customer Value Index"]]
             .style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}", "Customer Value Index": "{:.4f}"}),
             use_container_width=True
         )
-        # Bar chart for top 10 — Figure 12 (top half)
-        fig_top10_bar = px.bar(
-            top10.sort_values("Profit"),
-            x="Profit", y="Customer Id", orientation="h",
-            color="Profit",
-            color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"],
-        )
+        fig_top10_bar = go.Figure(go.Bar(
+            x=top10.sort_values("Profit")["Profit"],
+            y=top10.sort_values("Profit")["Rank"],
+            orientation="h",
+            marker=dict(color=PRIMARY_COLOR, line=dict(color="#1A5FA8", width=0.5)),
+            hovertemplate="<b>%{y}</b><br>Profit: $%{x:,.0f}<extra></extra>",
+        ))
         fig_top10_bar.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color=TEXT_COLOR),
+            font=dict(color=TEXT_COLOR, size=11),
             xaxis=dict(gridcolor=GRID_COLOR, title="Total Profit ($)"),
-            yaxis=dict(gridcolor=GRID_COLOR, title="Customer ID"),
-            coloraxis_showscale=False,
-            margin=dict(t=10, b=40, l=100, r=20),
+            yaxis=dict(gridcolor=GRID_COLOR, type="category",
+                       tickfont=dict(size=10), automargin=True),
+            margin=dict(t=10, b=40, l=10, r=20),
+            height=340,
         )
         st.plotly_chart(fig_top10_bar, use_container_width=True, key="chart_top10_bar")
 
     with col_b:
         st.markdown("#### ⚠️ Top 10 Loss-Making Customers")
-        bottom10 = customer[customer["Profit"] < 0].sort_values("Profit").head(10)
+        bottom10 = customer[customer["Profit"] < 0].sort_values("Profit").head(10).reset_index(drop=True)
+        bottom10["Rank"] = ["#" + str(i + 1) + "  (ID: " + str(int(row["Customer Id"])) + ")"
+                            for i, row in bottom10.iterrows()]
         st.dataframe(
             bottom10[["Customer Id", "Revenue", "Profit", "Orders"]]
             .style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
             use_container_width=True
         )
-        # Bar chart for bottom 10 — Figure 12 (bottom half)
-        fig_bot10_bar = px.bar(
-            bottom10.sort_values("Profit", ascending=False),
-            x="Profit", y="Customer Id", orientation="h",
-            color="Profit",
-            color_continuous_scale=["#EF4444", "#F59E0B", "#161B22"],
-        )
+        fig_bot10_bar = go.Figure(go.Bar(
+            x=bottom10.sort_values("Profit", ascending=False)["Profit"],
+            y=bottom10.sort_values("Profit", ascending=False)["Rank"],
+            orientation="h",
+            marker=dict(color=LOSS_COLOR, line=dict(color="#B91C1C", width=0.5)),
+            hovertemplate="<b>%{y}</b><br>Profit: $%{x:,.0f}<extra></extra>",
+        ))
         fig_bot10_bar.update_layout(
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color=TEXT_COLOR),
+            font=dict(color=TEXT_COLOR, size=11),
             xaxis=dict(gridcolor=GRID_COLOR, title="Total Profit ($)"),
-            yaxis=dict(gridcolor=GRID_COLOR, title="Customer ID"),
-            coloraxis_showscale=False,
-            margin=dict(t=10, b=40, l=100, r=20),
+            yaxis=dict(gridcolor=GRID_COLOR, type="category",
+                       tickfont=dict(size=10), automargin=True),
+            margin=dict(t=10, b=40, l=10, r=20),
+            height=340,
         )
         st.plotly_chart(fig_bot10_bar, use_container_width=True, key="chart_bot10_bar")
-    # ── END FIGURE 12 FIX ────────────────────────────────────────────────────
+    # ── END FIGURE 12 ─────────────────────────────────────────────────────────
 
     # Pareto
     st.markdown("#### 🔥 Pareto Analysis — Top 40 Customers")
