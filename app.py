@@ -3,7 +3,7 @@
 # Internship: Unified Mentor Pvt. Ltd.
 # Project: Customer & Product Profitability Analytics
 # Author: Vidit Kapoor
-# Version: 3.1
+# Version: 3.2
 # =========================================================
 
 import streamlit as st
@@ -26,17 +26,17 @@ st.set_page_config(
 # ---------------------------------------------------------
 # GLOBAL CONSTANTS
 # ---------------------------------------------------------
-DATA_PATH = Path("APL_Logistics.csv.gz")
-APL_LOGO_PATH = Path("APL_Logo.png")
+DATA_PATH         = Path("APL_Logistics.csv.gz")
+APL_LOGO_PATH     = Path("APL_Logo.png")
 UNIFIED_LOGO_PATH = Path("unified logo.png")
 
 PRIMARY_COLOR = "#2A82E9"
-CHART_BG = "#161B22"
-GRID_COLOR = "#2F3542"
-TEXT_COLOR = "#E5E7EB"
-LOSS_COLOR = "#EF4444"
-GAIN_COLOR = "#22C55E"
-WARN_COLOR = "#F59E0B"
+CHART_BG      = "#161B22"
+GRID_COLOR    = "#2F3542"
+TEXT_COLOR    = "#E5E7EB"
+LOSS_COLOR    = "#EF4444"
+GAIN_COLOR    = "#22C55E"
+WARN_COLOR    = "#F59E0B"
 
 # ---------------------------------------------------------
 # GLOBAL STYLES
@@ -77,14 +77,13 @@ render_header()
 # ---------------------------------------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_PATH,)
+    df = pd.read_csv(DATA_PATH)
     df = df.sample(min(len(df), 50000), random_state=42)
 
     original_rows = len(df)
     df = df[df["Sales"] > 0]
     cleaned_rows = original_rows - len(df)
 
-    # Parse order date if available (for trend charts)
     date_cols = [c for c in df.columns if "date" in c.lower() or "Date" in c]
     for col in date_cols:
         try:
@@ -138,7 +137,6 @@ if profit_filter == "Profitable Only":
 elif profit_filter == "Loss-Making Only":
     df = df[df["Order Profit Per Order"] < 0]
 
-# Compute Profit Margin AFTER filtering
 df = df.copy()
 df["Profit Margin"] = df["Order Profit Per Order"] / df["Sales"]
 
@@ -185,14 +183,13 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # TAB 1 — OVERVIEW
 # ==========================================================
 with tab1:
-    total_sales    = df["Sales"].sum()
-    total_profit   = df["Order Profit Per Order"].sum()
-    profit_margin  = (total_profit / total_sales * 100) if total_sales else 0
-    avg_discount   = df["Order Item Discount Rate"].mean()
-    order_count    = len(df)
-    avg_order_value= total_sales / order_count if order_count else 0
+    total_sales     = df["Sales"].sum()
+    total_profit    = df["Order Profit Per Order"].sum()
+    profit_margin   = (total_profit / total_sales * 100) if total_sales else 0
+    avg_discount    = df["Order Item Discount Rate"].mean()
+    order_count     = len(df)
+    avg_order_value = total_sales / order_count if order_count else 0
 
-    # Discount Impact Ratio KPI
     disc_corr = df[["Order Item Discount Rate", "Profit Margin"]].dropna()
     if len(disc_corr) > 10 and disc_corr["Order Item Discount Rate"].std() > 0:
         coef = np.polyfit(disc_corr["Order Item Discount Rate"], disc_corr["Profit Margin"], 1)
@@ -214,7 +211,7 @@ with tab1:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── NEW: EDA DISTRIBUTION SECTION (Figures 1, 2, 3, 4) ──────────────────
+    # ── EDA DISTRIBUTION SECTION (Figures 1, 2, 3, 4) ──────────────────────
     st.markdown("---")
     st.markdown("#### 🔬 EDA — Distribution Analysis")
 
@@ -263,7 +260,7 @@ with tab1:
 
     eda_col3, eda_col4 = st.columns(2)
 
-    # Figure 3 — Discount Rate Distribution  (PRIMARY_COLOR to match theme)
+    # Figure 3 — Discount Rate Distribution
     with eda_col3:
         st.markdown("#### Discount Rate Distribution")
         disc_counts = df["Order Item Discount Rate"].value_counts().sort_index().reset_index()
@@ -284,7 +281,7 @@ with tab1:
         )
         st.plotly_chart(fig_disc_dist, use_container_width=True, key="chart_eda3")
 
-    # Figure 4 — Profit Margin Distribution  (LOSS_COLOR since it shows negative margin territory)
+    # Figure 4 — Profit Margin Distribution
     with eda_col4:
         st.markdown("#### Profit Margin Distribution")
         fig_margin_dist = px.histogram(
@@ -307,38 +304,10 @@ with tab1:
         )
         st.plotly_chart(fig_margin_dist, use_container_width=True, key="chart_eda4")
 
-    # Figure 10 — Correlation Matrix Heatmap
-    st.markdown("#### Correlation Matrix (Key Financial Variables)")
-    financial_cols = [
-        "Sales", "Order Profit Per Order", "Order Item Discount Rate",
-        "Profit Margin", "Order Item Quantity", "Order Item Product Price",
-        "Order Item Profit Ratio"
-    ]
-    available_cols = [c for c in financial_cols if c in df.columns]
-    corr_matrix = df[available_cols].corr().round(2)
-
-    fig_corr = px.imshow(
-        corr_matrix,
-        text_auto=True,
-        color_continuous_scale=["#EF4444", "#161B22", "#0D3B6E", "#2A82E9", "#7EC8F8"],
-        zmin=-1, zmax=1,
-        aspect="auto"
-    )
-    fig_corr.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=TEXT_COLOR, size=12),
-        xaxis=dict(tickangle=-35, tickfont=dict(size=11)),
-        yaxis=dict(tickfont=dict(size=11)),
-        coloraxis_colorbar=dict(title="r", tickfont=dict(color=TEXT_COLOR)),
-        margin=dict(t=20, b=80, l=180, r=20),
-        height=380
-    )
-    st.plotly_chart(fig_corr, use_container_width=True, key="chart_eda10")
-
     st.markdown("---")
-    # ── END EDA SECTION ──────────────────────────────────────────────────────
+    # ── END EDA DISTRIBUTION SECTION ─────────────────────────────────────────
 
-    # Revenue vs Profit Time-Series Trend
+    # Revenue vs Profit Time-Series Trend (Figure 11)
     has_dates = df["Order Date Parsed"].notna().sum() > 100 if "Order Date Parsed" in df.columns else False
 
     if has_dates:
@@ -366,7 +335,7 @@ with tab1:
         )
         st.plotly_chart(fig_trend, use_container_width=True, key="chart_trend")
     else:
-        st.info("ℹ️ No parseable date column found in dataset — time-series trend chart will appear once an order date column is available.", icon="📅")
+        st.info("ℹ️ No parseable date column found — time-series trend chart will appear once an order date column is available.", icon="📅")
 
     col_left, col_right = st.columns(2)
 
@@ -420,7 +389,7 @@ with tab1:
     )
     st.plotly_chart(fig_conc, use_container_width=True, key="chart_1")
 
-    # Loss-making CATEGORIES explicit section
+    # Loss-making CATEGORIES
     st.markdown("#### ⚠️ Loss-Making Categories")
     cat_profit = df.groupby("Category Name").agg(
         Revenue=("Sales", "sum"),
@@ -537,23 +506,58 @@ with tab2:
                       hover_data=["Customer Id", "Orders"])
     st.plotly_chart(style(fig3), use_container_width=True, key="chart_10")
 
+    # ── FIGURE 12 FIX: Top/Bottom Customers — Table + Bar Chart ──────────────
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown("#### 🏆 Top 10 Customers by Profit")
+        top10 = customer.sort_values("Profit", ascending=False).head(10)
         st.dataframe(
-            customer.sort_values("Profit", ascending=False).head(10)
-            [["Customer Id", "Revenue", "Profit", "Orders", "Customer Value Index"]]
+            top10[["Customer Id", "Revenue", "Profit", "Orders", "Customer Value Index"]]
             .style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}", "Customer Value Index": "{:.4f}"}),
             use_container_width=True
         )
+        # Bar chart for top 10 — Figure 12 (top half)
+        fig_top10_bar = px.bar(
+            top10.sort_values("Profit"),
+            x="Profit", y="Customer Id", orientation="h",
+            color="Profit",
+            color_continuous_scale=["#0D3B6E", "#2A82E9", "#7EC8F8"],
+        )
+        fig_top10_bar.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_COLOR),
+            xaxis=dict(gridcolor=GRID_COLOR, title="Total Profit ($)"),
+            yaxis=dict(gridcolor=GRID_COLOR, title="Customer ID"),
+            coloraxis_showscale=False,
+            margin=dict(t=10, b=40, l=100, r=20),
+        )
+        st.plotly_chart(fig_top10_bar, use_container_width=True, key="chart_top10_bar")
+
     with col_b:
         st.markdown("#### ⚠️ Top 10 Loss-Making Customers")
+        bottom10 = customer[customer["Profit"] < 0].sort_values("Profit").head(10)
         st.dataframe(
-            customer[customer["Profit"] < 0].sort_values("Profit").head(10)
-            [["Customer Id", "Revenue", "Profit", "Orders"]]
+            bottom10[["Customer Id", "Revenue", "Profit", "Orders"]]
             .style.format({"Revenue": "${:,.0f}", "Profit": "${:,.0f}"}),
             use_container_width=True
         )
+        # Bar chart for bottom 10 — Figure 12 (bottom half)
+        fig_bot10_bar = px.bar(
+            bottom10.sort_values("Profit", ascending=False),
+            x="Profit", y="Customer Id", orientation="h",
+            color="Profit",
+            color_continuous_scale=["#EF4444", "#F59E0B", "#161B22"],
+        )
+        fig_bot10_bar.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_COLOR),
+            xaxis=dict(gridcolor=GRID_COLOR, title="Total Profit ($)"),
+            yaxis=dict(gridcolor=GRID_COLOR, title="Customer ID"),
+            coloraxis_showscale=False,
+            margin=dict(t=10, b=40, l=100, r=20),
+        )
+        st.plotly_chart(fig_bot10_bar, use_container_width=True, key="chart_bot10_bar")
+    # ── END FIGURE 12 FIX ────────────────────────────────────────────────────
 
     # Pareto
     st.markdown("#### 🔥 Pareto Analysis — Top 40 Customers")
@@ -691,7 +695,7 @@ with tab3:
             use_container_width=True
         )
 
-    # Bubble chart
+    # Bubble chart — Figure 14
     st.markdown("#### Revenue vs Margin Bubble Chart (Top 30 Products)")
     top30 = product.nlargest(30, "Revenue")
     fig_bubble = px.scatter(top30, x="Revenue", y="Margin %", size="Orders",
@@ -713,21 +717,71 @@ with tab4:
     kpi(disc_kpi_col1, "Discount Impact Ratio",
         f"{discount_impact_ratio:.2f}",
         sub="Margin Δ per 1-unit discount rate")
-    avg_margin_no_disc = df[df["Order Item Discount Rate"] == 0]["Profit Margin"].mean() if (df["Order Item Discount Rate"] == 0).any() else profit_margin
+    avg_margin_no_disc   = df[df["Order Item Discount Rate"] == 0]["Profit Margin"].mean() if (df["Order Item Discount Rate"] == 0).any() else profit_margin
     avg_margin_with_disc = df[df["Order Item Discount Rate"] > 0]["Profit Margin"].mean() if (df["Order Item Discount Rate"] > 0).any() else profit_margin
-    kpi(disc_kpi_col2, "Avg Margin (No Discount)",   f"{avg_margin_no_disc*100:.2f}%")
-    kpi(disc_kpi_col3, "Avg Margin (With Discount)",  f"{avg_margin_with_disc*100:.2f}%")
+    kpi(disc_kpi_col2, "Avg Margin (No Discount)",  f"{avg_margin_no_disc*100:.2f}%")
+    kpi(disc_kpi_col3, "Avg Margin (With Discount)", f"{avg_margin_with_disc*100:.2f}%")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
+
+    # ── FIGURE 6 FIX: Discount vs Margin scatter WITH regression line ─────────
     with col1:
-        fig4 = px.scatter(df.sample(min(5000, len(df)), random_state=1),
-                          x="Order Item Discount Rate", y="Profit Margin",
-                          color="Profit Margin",
-                          color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"],
-                          opacity=0.5)
-        st.plotly_chart(style(fig4, "Discount Rate vs Profit Margin"), use_container_width=True, key="chart_14")
+        scatter_sample = df.sample(min(5000, len(df)), random_state=1)
+
+        # Compute regression line
+        reg_x = scatter_sample["Order Item Discount Rate"].dropna()
+        reg_y = scatter_sample.loc[reg_x.index, "Profit Margin"]
+        valid = reg_x.notna() & reg_y.notna()
+        reg_x_clean = reg_x[valid].values
+        reg_y_clean = reg_y[valid].values
+
+        if len(reg_x_clean) > 10 and reg_x_clean.std() > 0:
+            reg_coef = np.polyfit(reg_x_clean, reg_y_clean, 1)
+            reg_line_x = np.linspace(reg_x_clean.min(), reg_x_clean.max(), 100)
+            reg_line_y = np.polyval(reg_coef, reg_line_x)
+        else:
+            reg_line_x = np.array([])
+            reg_line_y = np.array([])
+
+        fig4 = px.scatter(
+            scatter_sample,
+            x="Order Item Discount Rate", y="Profit Margin",
+            color="Profit Margin",
+            color_continuous_scale=["#EF4444", "#161B22", "#2A82E9"],
+            opacity=0.5
+        )
+
+        # Add regression line on top
+        if len(reg_line_x) > 0:
+            fig4.add_scatter(
+                x=reg_line_x, y=reg_line_y,
+                mode="lines", name="Regression Line",
+                line=dict(color=WARN_COLOR, width=2.5, dash="solid"),
+                hovertemplate="Trend: %{y:.3f}<extra></extra>"
+            )
+            # Annotate slope
+            fig4.add_annotation(
+                x=reg_line_x[-1], y=reg_line_y[-1],
+                text=f"slope: {reg_coef[0]:.3f}",
+                showarrow=True, arrowhead=2,
+                font=dict(color=WARN_COLOR, size=11),
+                arrowcolor=WARN_COLOR,
+                ax=40, ay=-30
+            )
+
+        fig4.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_COLOR),
+            title=dict(text="Discount Rate vs Profit Margin", font=dict(size=18, color=TEXT_COLOR)),
+            xaxis=dict(gridcolor=GRID_COLOR, title="Discount Rate"),
+            yaxis=dict(gridcolor=GRID_COLOR, title="Profit Margin"),
+            legend=dict(orientation="h", y=1.08),
+            margin=dict(t=50, b=40, l=40, r=20)
+        )
+        st.plotly_chart(fig4, use_container_width=True, key="chart_14")
+    # ── END FIGURE 6 FIX ─────────────────────────────────────────────────────
 
     with col2:
         df["Discount Bin"] = pd.cut(df["Order Item Discount Rate"], bins=5).astype(str)
@@ -792,8 +846,8 @@ with tab4:
             proj_margins.append((prof / rev * 100) if rev else 0)
 
         what_if_df = pd.DataFrame({
-            "Discount Rate":    rates,
-            "Projected Profit": proj_profits,
+            "Discount Rate":      rates,
+            "Projected Profit":   proj_profits,
             "Projected Margin %": proj_margins
         })
 
@@ -881,7 +935,7 @@ with tab5:
                           text_auto=".1f")
     st.plotly_chart(style(fig_mmargin, "Profit Margin % by Market"), use_container_width=True, key="chart_19")
 
-    # World Map
+    # World Map — Figure 18
     st.markdown("#### 🗺️ Profit by Country (World Map)")
     country = df.groupby("Order Country").agg(
         Revenue=("Sales", "sum"),
@@ -943,7 +997,7 @@ def render_footer():
                target="_blank" style="color:#0A66C2;">
                Vidit Kapoor</a>
         </span>
-        <span>Version 3.1 | Mar 2026</span>
+        <span>Version 3.2 | Mar 2026</span>
     </div>
     """, unsafe_allow_html=True)
 
